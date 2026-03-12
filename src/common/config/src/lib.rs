@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmConfig {
+    #[serde(default = "default_llm_provider")]
+    pub provider: String,
     pub base_url: String,
     pub api_key: String,
     pub model: String,
@@ -9,6 +11,10 @@ pub struct LlmConfig {
     pub temperature: f32,
     #[serde(default = "default_max_tokens")]
     pub max_tokens: u32,
+}
+
+fn default_llm_provider() -> String {
+    "openai".into()
 }
 
 fn default_temperature() -> f32 {
@@ -22,6 +28,7 @@ fn default_max_tokens() -> u32 {
 impl Default for LlmConfig {
     fn default() -> Self {
         Self {
+            provider: default_llm_provider(),
             base_url: "https://api.openai.com/v1".into(),
             api_key: String::new(),
             model: "gpt-4.1-nano".into(),
@@ -33,11 +40,17 @@ impl Default for LlmConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbeddingConfig {
+    #[serde(default = "default_embedding_provider")]
+    pub provider: String,
     pub base_url: String,
     pub api_key: String,
     pub model: String,
     #[serde(default = "default_embedding_dims")]
     pub dims: usize,
+}
+
+fn default_embedding_provider() -> String {
+    "openai".into()
 }
 
 fn default_embedding_dims() -> usize {
@@ -47,6 +60,7 @@ fn default_embedding_dims() -> usize {
 impl Default for EmbeddingConfig {
     fn default() -> Self {
         Self {
+            provider: default_embedding_provider(),
             base_url: "https://api.openai.com/v1".into(),
             api_key: String::new(),
             model: "text-embedding-3-small".into(),
@@ -57,7 +71,7 @@ impl Default for EmbeddingConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VectorConfig {
-    #[serde(default = "default_provider")]
+    #[serde(default = "default_vector_provider")]
     pub provider: String,
     #[serde(default = "default_collection")]
     pub collection_name: String,
@@ -67,7 +81,7 @@ pub struct VectorConfig {
     pub upstash_token: Option<String>,
 }
 
-fn default_provider() -> String {
+fn default_vector_provider() -> String {
     "flat".into()
 }
 
@@ -78,7 +92,7 @@ fn default_collection() -> String {
 impl Default for VectorConfig {
     fn default() -> Self {
         Self {
-            provider: default_provider(),
+            provider: default_vector_provider(),
             collection_name: default_collection(),
             dims: default_embedding_dims(),
             upstash_url: None,

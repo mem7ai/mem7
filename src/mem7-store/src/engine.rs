@@ -5,11 +5,11 @@ use mem7_core::{
     AddResult, ChatMessage, MemoryAction, MemoryActionResult, MemoryEvent, MemoryFilter,
     MemoryItem, SearchResult, new_memory_id,
 };
-use mem7_embedding::{EmbeddingClient, OpenAICompatibleEmbedding};
+use mem7_embedding::EmbeddingClient;
 use mem7_error::{Mem7Error, Result};
 use mem7_history::SqliteHistory;
-use mem7_llm::{LlmClient, OpenAICompatibleLlm};
-use mem7_vector::{DistanceMetric, FlatIndex, UpstashVectorIndex, VectorIndex, VectorSearchResult};
+use mem7_llm::LlmClient;
+use mem7_vector::{VectorIndex, VectorSearchResult};
 use tracing::{debug, info};
 use uuid::Uuid;
 
@@ -26,35 +26,9 @@ pub struct MemoryEngine {
 
 impl MemoryEngine {
     pub async fn new(config: MemoryEngineConfig) -> Result<Self> {
-        let llm = Arc::new(OpenAICompatibleLlm::new(config.llm.clone())) as Arc<dyn LlmClient>;
-        let embedder = Arc::new(OpenAICompatibleEmbedding::new(config.embedding.clone()))
-            as Arc<dyn EmbeddingClient>;
-
-        let vector_index: Arc<dyn VectorIndex> = match config.vector.provider.as_str() {
-            "upstash" => {
-                let url = config
-                    .vector
-                    .upstash_url
-                    .as_deref()
-                    .ok_or_else(|| Mem7Error::Config("upstash_url is required".into()))?;
-                let token = config
-                    .vector
-                    .upstash_token
-                    .as_deref()
-                    .ok_or_else(|| Mem7Error::Config("upstash_token is required".into()))?;
-                info!(namespace = %config.vector.collection_name, "using Upstash Vector");
-                Arc::new(UpstashVectorIndex::new(
-                    url,
-                    token,
-                    &config.vector.collection_name,
-                ))
-            }
-            _ => {
-                info!("using in-memory FlatIndex");
-                Arc::new(FlatIndex::new(DistanceMetric::Cosine))
-            }
-        };
-
+        let llm = mem7_llm::create_llm(&config.llm)?;
+        let embedder = mem7_embedding::create_embedding(&config.embedding)?;
+        let vector_index = mem7_vector::create_vector_index(&config.vector)?;
         let history = Arc::new(SqliteHistory::new(&config.history.db_path).await?);
 
         info!("MemoryEngine initialized");

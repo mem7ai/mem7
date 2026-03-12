@@ -87,6 +87,15 @@ struct QueryRequest {
 }
 
 #[derive(Serialize)]
+struct FetchRequest {
+    ids: Vec<String>,
+    #[serde(rename = "includeMetadata")]
+    include_metadata: bool,
+    #[serde(rename = "includeVectors")]
+    include_vectors: bool,
+}
+
+#[derive(Serialize)]
 struct RangeRequest {
     cursor: String,
     limit: usize,
@@ -249,33 +258,16 @@ impl VectorIndex for UpstashVectorIndex {
     }
 
     async fn get(&self, id: &Uuid) -> Result<Option<(Vec<f32>, serde_json::Value)>> {
-        let url = if self.namespace.is_empty() {
-            format!("{}/fetch/{id}", self.base_url)
-        } else {
-            format!("{}/fetch/{id}?ns={}", self.base_url, self.namespace)
-        };
+        let ids = vec![id.to_string()];
 
-        let resp = self
-            .client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", self.token))
-            .send()
-            .await?;
+        let resp: UpstashResponse<Vec<FetchResultEntry>> =
+            self.post("fetch", &FetchRequest {
+                ids,
+                include_metadata: true,
+                include_vectors: true,
+            }).await?;
 
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            return Err(Mem7Error::VectorStore(format!(
-                "Upstash fetch HTTP {status}: {text}"
-            )));
-        }
-
-        let data: UpstashResponse<Option<FetchResultEntry>> = resp
-            .json()
-            .await
-            .map_err(|e| Mem7Error::VectorStore(format!("Upstash fetch parse error: {e}")))?;
-
-        Ok(data.result.map(|entry| {
+        Ok(resp.result.into_iter().next().map(|entry| {
             (
                 entry.vector.unwrap_or_default(),
                 entry.metadata.unwrap_or(serde_json::Value::Null),

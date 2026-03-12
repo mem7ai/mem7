@@ -3,11 +3,52 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Optional, Union
 
 from mem7._mem7 import PyMemoryEngine
 from mem7.config import MemoryConfig
+
+
+def _memory_item_to_dict(item) -> dict:
+    return {
+        "id": item.id,
+        "text": item.text,
+        "user_id": item.user_id,
+        "agent_id": item.agent_id,
+        "run_id": item.run_id,
+        "metadata": item.metadata,
+        "created_at": item.created_at,
+        "updated_at": item.updated_at,
+        "score": item.score,
+    }
+
+
+def _action_result_to_dict(r) -> dict:
+    return {
+        "id": r.id,
+        "action": r.action,
+        "old_value": r.old_value,
+        "new_value": r.new_value,
+    }
+
+
+def _add_result_to_dict(result) -> dict:
+    return {"results": [_action_result_to_dict(r) for r in result.results]}
+
+
+def _search_result_to_dict(result) -> dict:
+    return {"memories": [_memory_item_to_dict(m) for m in result.memories]}
+
+
+def _event_to_dict(e) -> dict:
+    return {
+        "id": e.id,
+        "memory_id": e.memory_id,
+        "old_value": e.old_value,
+        "new_value": e.new_value,
+        "action": e.action,
+        "created_at": e.created_at,
+    }
 
 
 class Memory:
@@ -31,8 +72,8 @@ class Memory:
         run_id: Optional[str] = None,
     ) -> dict:
         msgs = _normalize_messages(messages)
-        raw = self._engine.add(msgs, user_id=user_id, agent_id=agent_id, run_id=run_id)
-        return json.loads(raw)
+        result = self._engine.add(msgs, user_id=user_id, agent_id=agent_id, run_id=run_id)
+        return _add_result_to_dict(result)
 
     def search(
         self,
@@ -43,13 +84,13 @@ class Memory:
         run_id: Optional[str] = None,
         limit: int = 5,
     ) -> dict:
-        raw = self._engine.search(
+        result = self._engine.search(
             query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit
         )
-        return json.loads(raw)
+        return _search_result_to_dict(result)
 
     def get(self, memory_id: str) -> dict:
-        return json.loads(self._engine.get(memory_id))
+        return _memory_item_to_dict(self._engine.get(memory_id))
 
     def get_all(
         self,
@@ -58,8 +99,8 @@ class Memory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
     ) -> list:
-        raw = self._engine.get_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
-        return json.loads(raw)
+        items = self._engine.get_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
+        return [_memory_item_to_dict(item) for item in items]
 
     def update(self, memory_id: str, new_text: str) -> None:
         self._engine.update(memory_id, new_text)
@@ -77,7 +118,8 @@ class Memory:
         self._engine.delete_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
 
     def history(self, memory_id: str) -> list:
-        return json.loads(self._engine.history(memory_id))
+        events = self._engine.history(memory_id)
+        return [_event_to_dict(e) for e in events]
 
     def reset(self) -> None:
         self._engine.reset()
@@ -105,11 +147,11 @@ class AsyncMemory:
     ) -> dict:
         msgs = _normalize_messages(messages)
         loop = asyncio.get_event_loop()
-        raw = await loop.run_in_executor(
+        result = await loop.run_in_executor(
             None,
             lambda: self._engine.add(msgs, user_id=user_id, agent_id=agent_id, run_id=run_id),
         )
-        return json.loads(raw)
+        return _add_result_to_dict(result)
 
     async def search(
         self,
@@ -121,18 +163,18 @@ class AsyncMemory:
         limit: int = 5,
     ) -> dict:
         loop = asyncio.get_event_loop()
-        raw = await loop.run_in_executor(
+        result = await loop.run_in_executor(
             None,
             lambda: self._engine.search(
                 query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit
             ),
         )
-        return json.loads(raw)
+        return _search_result_to_dict(result)
 
     async def get(self, memory_id: str) -> dict:
         loop = asyncio.get_event_loop()
-        raw = await loop.run_in_executor(None, lambda: self._engine.get(memory_id))
-        return json.loads(raw)
+        item = await loop.run_in_executor(None, lambda: self._engine.get(memory_id))
+        return _memory_item_to_dict(item)
 
     async def get_all(
         self,
@@ -142,13 +184,13 @@ class AsyncMemory:
         run_id: Optional[str] = None,
     ) -> list:
         loop = asyncio.get_event_loop()
-        raw = await loop.run_in_executor(
+        items = await loop.run_in_executor(
             None,
             lambda: self._engine.get_all(
                 user_id=user_id, agent_id=agent_id, run_id=run_id
             ),
         )
-        return json.loads(raw)
+        return [_memory_item_to_dict(item) for item in items]
 
     async def update(self, memory_id: str, new_text: str) -> None:
         loop = asyncio.get_event_loop()
@@ -177,8 +219,8 @@ class AsyncMemory:
 
     async def history(self, memory_id: str) -> list:
         loop = asyncio.get_event_loop()
-        raw = await loop.run_in_executor(None, lambda: self._engine.history(memory_id))
-        return json.loads(raw)
+        events = await loop.run_in_executor(None, lambda: self._engine.history(memory_id))
+        return [_event_to_dict(e) for e in events]
 
     async def reset(self) -> None:
         loop = asyncio.get_event_loop()

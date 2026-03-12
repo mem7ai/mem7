@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 
 class LlmConfig(BaseModel):
+    provider: str = "openai"
     base_url: str = Field(default="https://api.openai.com/v1")
     api_key: str = Field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", ""))
     model: str = "gpt-4.1-nano"
@@ -15,6 +16,7 @@ class LlmConfig(BaseModel):
 
 
 class EmbeddingConfig(BaseModel):
+    provider: str = "openai"
     base_url: str = Field(default="https://api.openai.com/v1")
     api_key: str = Field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", ""))
     model: str = "text-embedding-3-small"

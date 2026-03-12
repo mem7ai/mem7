@@ -1,15 +1,19 @@
 mod distance;
 mod filter;
-mod index;
+mod flat;
 mod upstash;
 
 pub use distance::DistanceMetric;
-pub use index::FlatIndex;
+pub use flat::FlatIndex;
 pub use upstash::UpstashVectorIndex;
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use mem7_config::VectorConfig;
 use mem7_core::MemoryFilter;
-use mem7_error::Result;
+use mem7_error::{Mem7Error, Result};
+use tracing::info;
 use uuid::Uuid;
 
 /// A vector search result entry.
@@ -44,4 +48,33 @@ pub trait VectorIndex: Send + Sync {
         limit: Option<usize>,
     ) -> Result<Vec<(Uuid, serde_json::Value)>>;
     async fn reset(&self) -> Result<()>;
+}
+
+/// Create a vector index from config.
+pub fn create_vector_index(config: &VectorConfig) -> Result<Arc<dyn VectorIndex>> {
+    match config.provider.as_str() {
+        "upstash" => {
+            let url = config
+                .upstash_url
+                .as_deref()
+                .ok_or_else(|| Mem7Error::Config("upstash_url is required".into()))?;
+            let token = config
+                .upstash_token
+                .as_deref()
+                .ok_or_else(|| Mem7Error::Config("upstash_token is required".into()))?;
+            info!(namespace = %config.collection_name, "using Upstash Vector");
+            Ok(Arc::new(UpstashVectorIndex::new(
+                url,
+                token,
+                &config.collection_name,
+            )))
+        }
+        "flat" | "" => {
+            info!("using in-memory FlatIndex");
+            Ok(Arc::new(FlatIndex::new(DistanceMetric::Cosine)))
+        }
+        other => Err(Mem7Error::Config(format!(
+            "unknown vector store provider: {other}"
+        ))),
+    }
 }

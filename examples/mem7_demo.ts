@@ -7,8 +7,8 @@
  *        ollama pull qwen2.5:7b
  *        ollama pull mxbai-embed-large
  *   2. Environment variables set:
- *        UPSTASH_VECTOR_URL=https://your-index.upstash.io
- *        UPSTASH_VECTOR_TOKEN=your-token
+ *        UPSTASH_VECTOR_REST_URL=https://your-index.upstash.io
+ *        UPSTASH_VECTOR_REST_TOKEN=your-token
  *   3. Install the package:
  *        npm install @mem7ai/mem7
  *
@@ -29,6 +29,7 @@ async function main() {
   const engine = await MemoryEngine.create(
     JSON.stringify({
       llm: {
+        provider: "ollama",
         base_url: "http://localhost:11434/v1",
         api_key: "ollama",
         model: "qwen2.5:7b",
@@ -36,6 +37,7 @@ async function main() {
         max_tokens: 2000,
       },
       embedding: {
+        provider: "ollama",
         base_url: "http://localhost:11434/v1",
         api_key: "ollama",
         model: "mxbai-embed-large",
@@ -45,8 +47,8 @@ async function main() {
         provider: "upstash",
         collection_name: "mem7-ts-test",
         dims: 1024,
-        upstash_url: process.env.UPSTASH_VECTOR_URL!,
-        upstash_token: process.env.UPSTASH_VECTOR_TOKEN!,
+        upstash_url: process.env.UPSTASH_VECTOR_REST_URL!,
+        upstash_token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
       },
       history: {
         db_path: ":memory:",

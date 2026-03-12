@@ -8,6 +8,7 @@ description = "Vector index implementations for the mem7 memory engine"
 
 [dependencies]
 mem7-error.workspace = true
+mem7-config.workspace = true
 mem7-core.workspace = true
 async-trait.workspace = true
 reqwest.workspace = true
