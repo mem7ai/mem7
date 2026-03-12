@@ -18,12 +18,8 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            manylinux: auto
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            # manylinux_2_34 (AlmaLinux 9) ships binutils 2.35+ which
-            # supports ARMv8.4+SHA3 assembly required by aws-lc-sys.
-            manylinux: "2_34"
           - os: macos-latest
             target: x86_64-apple-darwin
           - os: macos-latest
@@ -40,8 +36,17 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          manylinux: ${{ matrix.manylinux || 'auto' }}
-          before-script-linux: yum install -y cmake3 perl-IPC-Cmd && ln -sf /usr/bin/cmake3 /usr/bin/cmake || true
+          manylinux: auto
+          before-script-linux: |
+            # On aarch64, the default binutils (2.30) is too old for
+            # aws-lc-sys's ARMv8.4+SHA3 assembly. Install gcc-toolset-12
+            # (binutils 2.38) to get a modern assembler.
+            if [ "$(uname -m)" = "aarch64" ]; then
+              yum install -y gcc-toolset-12-gcc gcc-toolset-12-binutils
+              source /opt/rh/gcc-toolset-12/enable
+            fi
+            yum install -y cmake3 perl-IPC-Cmd
+            ln -sf /usr/bin/cmake3 /usr/bin/cmake || true
       - uses: actions/upload-artifact@v6
         with:
           name: wheels-${{ matrix.target }}
