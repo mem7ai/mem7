@@ -83,6 +83,7 @@ jobs:
         with:
           packages-dir: dist/
           skip-existing: true
+          attestations: false
 
   # ── Publish Rust crates to crates.io ───────────────────────────────
   publish-crates:
