@@ -1,0 +1,18 @@
+[package]
+name = "mem7"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "LLM-powered long-term memory engine — Rust core with Python bindings"
+
+[dependencies]
+mem7-error.workspace = true
+mem7-config.workspace = true
+mem7-core.workspace = true
+mem7-llm.workspace = true
+mem7-embedding.workspace = true
+mem7-vector.workspace = true
+mem7-history.workspace = true
+mem7-dedup.workspace = true
+mem7-store.workspace = true

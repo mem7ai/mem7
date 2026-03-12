@@ -591,6 +591,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
+name = "mem7"
+version = "0.1.0"
+dependencies = [
+ "mem7-config",
+ "mem7-core",
+ "mem7-dedup",
+ "mem7-embedding",
+ "mem7-error",
+ "mem7-history",
+ "mem7-llm",
+ "mem7-store",
+ "mem7-vector",
+]
+
+[[package]]
 name = "mem7-config"
 version = "0.1.0"
 dependencies = [

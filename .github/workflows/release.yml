@@ -111,3 +111,4 @@ jobs:
           publish mem7-history
           publish mem7-dedup
           publish mem7-store
+          publish mem7
