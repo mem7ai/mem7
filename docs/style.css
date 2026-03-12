@@ -70,18 +70,16 @@ a:hover { opacity: 0.8; }
   font-size: 18px;
 }
 
-.logo-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.logo-img {
   width: 32px;
   height: 32px;
-  background: var(--accent);
-  color: #0a0a0a;
   border-radius: 8px;
-  font-weight: 700;
-  font-size: 13px;
-  font-family: var(--mono);
+  object-fit: contain;
+}
+
+.logo-img-sm {
+  width: 28px;
+  height: 28px;
 }
 
 .nav-links {
@@ -565,11 +563,6 @@ a:hover { opacity: 0.8; }
   font-size: 14px;
 }
 
-.footer-left .logo-mark {
-  width: 28px;
-  height: 28px;
-  font-size: 11px;
-}
 
 .footer-links {
   display: flex;
