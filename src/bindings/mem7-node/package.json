@@ -1,0 +1,45 @@
+{
+  "name": "@mem7ai/mem7",
+  "version": "0.1.4",
+  "description": "LLM-powered long-term memory engine — Rust core with Node.js bindings",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mem7ai/mem7.git"
+  },
+  "homepage": "https://github.com/mem7ai/mem7",
+  "license": "Apache-2.0",
+  "keywords": ["memory", "llm", "ai", "rust", "napi", "embedding", "vector"],
+  "napi": {
+    "binaryName": "mem7",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "scripts": {
+    "build": "napi build -p mem7-node --platform --release",
+    "build:debug": "napi build -p mem7-node --platform",
+    "prepublishOnly": "napi prepublish -t npm",
+    "artifacts": "napi artifacts",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.5.1"
+  },
+  "optionalDependencies": {
+    "@mem7ai/mem7-darwin-x64": "0.1.4",
+    "@mem7ai/mem7-darwin-arm64": "0.1.4",
+    "@mem7ai/mem7-linux-x64-gnu": "0.1.4",
+    "@mem7ai/mem7-linux-arm64-gnu": "0.1.4",
+    "@mem7ai/mem7-win32-x64-msvc": "0.1.4"
+  }
+}

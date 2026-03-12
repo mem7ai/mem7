@@ -12,6 +12,7 @@ members = [
     "src/mem7-store",
     "src/mem7",
     "src/bindings/mem7-python",
+    "src/bindings/mem7-node",
 ]
 
 [workspace.package]
@@ -21,7 +22,7 @@ license = "Apache-2.0"
 rust-version = "1.85"
 repository = "https://github.com/mem7ai/mem7"
 homepage = "https://github.com/mem7ai/mem7"
-description = "LLM-powered long-term memory engine — Rust core with Python bindings"
+description = "LLM-powered long-term memory engine — Rust core with multi-language bindings"
 
 [workspace.dependencies]
 # Internal crates

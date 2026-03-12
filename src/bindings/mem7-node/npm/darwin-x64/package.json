@@ -1,0 +1,14 @@
+{
+  "name": "@mem7ai/mem7-darwin-x64",
+  "version": "0.1.4",
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "main": "mem7.darwin-x64.node",
+  "files": ["mem7.darwin-x64.node"],
+  "description": "mem7 native binding for macOS x64",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mem7ai/mem7.git"
+  }
+}

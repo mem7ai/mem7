@@ -1,0 +1,15 @@
+{
+  "name": "@mem7ai/mem7-linux-arm64-gnu",
+  "version": "0.1.4",
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "main": "mem7.linux-arm64-gnu.node",
+  "files": ["mem7.linux-arm64-gnu.node"],
+  "description": "mem7 native binding for Linux ARM64 (glibc)",
+  "license": "Apache-2.0",
+  "libc": ["glibc"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mem7ai/mem7.git"
+  }
+}

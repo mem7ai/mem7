@@ -44,6 +44,45 @@ jobs:
           name: wheels-${{ matrix.target }}
           path: dist
 
+  # ── Build Node.js native addons for all platforms ──────────────────
+  build-node:
+    name: Build node (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: src/bindings/mem7-node
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ matrix.target }}
+          cache: false
+      - run: npm install
+      - name: Build native module
+        run: npx napi build -p mem7-node --platform --release --target ${{ matrix.target }} ${{ contains(matrix.target, 'linux') && '--use-napi-cross' || '' }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: node-${{ matrix.target }}
+          path: src/bindings/mem7-node/mem7.*.node
+          if-no-files-found: error
+
   # ── Publish Python package to PyPI ─────────────────────────────────
   publish-pypi:
     name: Publish to PyPI
@@ -65,6 +104,37 @@ jobs:
         with:
           verbose: true
           skip-existing: true
+
+  # ── Publish Node.js package to npm ─────────────────────────────────
+  publish-npm:
+    name: Publish to npm
+    needs: [build-node]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/bindings/mem7-node
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      - run: npm install
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: node-*
+          merge-multiple: true
+          path: src/bindings/mem7-node
+      - name: Move artifacts and publish
+        run: |
+          npx napi create-npm-dirs
+          npx napi artifacts
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ── Publish Rust crates to crates.io ───────────────────────────────
   publish-crates:
