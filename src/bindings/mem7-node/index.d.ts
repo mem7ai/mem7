@@ -2,10 +2,10 @@
 /* eslint-disable */
 export declare class MemoryEngine {
   static create(configJson?: string | undefined | null): Promise<MemoryEngine>
-  add(messages: Array<JsChatMessage>, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null): Promise<JsAddResult>
-  search(query: string, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, limit?: number | undefined | null): Promise<JsSearchResult>
+  add(messages: Array<JsChatMessage>, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, metadata?: string | undefined | null): Promise<JsAddResult>
+  search(query: string, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, limit?: number | undefined | null, filters?: string | undefined | null): Promise<JsSearchResult>
   get(memoryId: string): Promise<JsMemoryItem>
-  getAll(userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null): Promise<Array<JsMemoryItem>>
+  getAll(userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, filters?: string | undefined | null): Promise<Array<JsMemoryItem>>
   update(memoryId: string, newText: string): Promise<void>
   delete(memoryId: string): Promise<void>
   deleteAll(userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null): Promise<void>

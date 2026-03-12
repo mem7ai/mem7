@@ -156,6 +156,17 @@ fn build_filter(filter: &MemoryFilter) -> Option<String> {
     if let Some(ref rid) = filter.run_id {
         conditions.push(format!("run_id = '{rid}'"));
     }
+
+    if let Some(ref meta) = filter.metadata
+        && let Some(obj) = meta.as_object()
+    {
+        for (key, cond) in obj {
+            if let Some(expr) = translate_metadata_condition(key, cond) {
+                conditions.push(expr);
+            }
+        }
+    }
+
     if conditions.is_empty() {
         None
     } else {
@@ -163,23 +174,143 @@ fn build_filter(filter: &MemoryFilter) -> Option<String> {
     }
 }
 
-fn matches_filter_local(metadata: &serde_json::Value, filter: &MemoryFilter) -> bool {
-    if let Some(ref uid) = filter.user_id
-        && metadata.get("user_id").and_then(|v| v.as_str()) != Some(uid.as_str())
-    {
-        return false;
+/// Translate a single metadata filter entry to an Upstash filter expression.
+/// Uses `metadata.{key}` path prefix for nested access.
+fn translate_metadata_condition(key: &str, condition: &serde_json::Value) -> Option<String> {
+    let field = format!("metadata.{key}");
+    match key {
+        "AND" => {
+            let parts: Vec<String> = condition
+                .as_array()?
+                .iter()
+                .filter_map(|f| {
+                    let obj = f.as_object()?;
+                    let sub: Vec<String> = obj
+                        .iter()
+                        .filter_map(|(k, v)| translate_metadata_condition(k, v))
+                        .collect();
+                    if sub.is_empty() {
+                        None
+                    } else {
+                        Some(sub.join(" AND "))
+                    }
+                })
+                .collect();
+            if parts.is_empty() {
+                None
+            } else {
+                Some(format!("({})", parts.join(" AND ")))
+            }
+        }
+        "OR" => {
+            let parts: Vec<String> = condition
+                .as_array()?
+                .iter()
+                .filter_map(|f| {
+                    let obj = f.as_object()?;
+                    let sub: Vec<String> = obj
+                        .iter()
+                        .filter_map(|(k, v)| translate_metadata_condition(k, v))
+                        .collect();
+                    if sub.is_empty() {
+                        None
+                    } else {
+                        Some(sub.join(" AND "))
+                    }
+                })
+                .collect();
+            if parts.is_empty() {
+                None
+            } else {
+                Some(format!("({})", parts.join(" OR ")))
+            }
+        }
+        "NOT" => {
+            let parts: Vec<String> = condition
+                .as_array()?
+                .iter()
+                .filter_map(|f| {
+                    let obj = f.as_object()?;
+                    let sub: Vec<String> = obj
+                        .iter()
+                        .filter_map(|(k, v)| translate_metadata_condition(k, v))
+                        .collect();
+                    if sub.is_empty() {
+                        None
+                    } else {
+                        Some(format!("NOT ({})", sub.join(" AND ")))
+                    }
+                })
+                .collect();
+            if parts.is_empty() {
+                None
+            } else {
+                Some(parts.join(" AND "))
+            }
+        }
+        _ => match condition {
+            serde_json::Value::Object(ops) => {
+                let parts: Vec<String> = ops
+                    .iter()
+                    .filter_map(|(op, val)| translate_operator(&field, op, val))
+                    .collect();
+                if parts.is_empty() {
+                    None
+                } else {
+                    Some(parts.join(" AND "))
+                }
+            }
+            serde_json::Value::String(s) => Some(format!("{field} = '{s}'")),
+            serde_json::Value::Number(n) => Some(format!("{field} = {n}")),
+            serde_json::Value::Bool(b) => Some(format!("{field} = {b}")),
+            _ => None,
+        },
     }
-    if let Some(ref aid) = filter.agent_id
-        && metadata.get("agent_id").and_then(|v| v.as_str()) != Some(aid.as_str())
-    {
-        return false;
+}
+
+fn translate_operator(field: &str, op: &str, val: &serde_json::Value) -> Option<String> {
+    match op {
+        "eq" => Some(format_equality(field, val)),
+        "ne" => Some(format!("{field} != {}", format_value(val))),
+        "gt" => Some(format!("{field} > {}", format_value(val))),
+        "gte" => Some(format!("{field} >= {}", format_value(val))),
+        "lt" => Some(format!("{field} < {}", format_value(val))),
+        "lte" => Some(format!("{field} <= {}", format_value(val))),
+        "in" => {
+            let items: Vec<String> = val.as_array()?.iter().map(format_value).collect();
+            Some(format!("{field} IN ({})", items.join(", ")))
+        }
+        "nin" => {
+            let items: Vec<String> = val.as_array()?.iter().map(format_value).collect();
+            Some(format!("{field} NOT IN ({})", items.join(", ")))
+        }
+        "contains" => {
+            let s = val.as_str()?;
+            Some(format!("{field} GLOB '*{s}*'"))
+        }
+        "icontains" => {
+            let s = val.as_str()?;
+            Some(format!("{field} GLOB '*{s}*'"))
+        }
+        _ => None,
     }
-    if let Some(ref rid) = filter.run_id
-        && metadata.get("run_id").and_then(|v| v.as_str()) != Some(rid.as_str())
-    {
-        return false;
+}
+
+fn format_equality(field: &str, val: &serde_json::Value) -> String {
+    format!("{field} = {}", format_value(val))
+}
+
+fn format_value(val: &serde_json::Value) -> String {
+    match val {
+        serde_json::Value::String(s) => format!("'{s}'"),
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        other => other.to_string(),
     }
-    true
+}
+
+fn matches_filter_local(payload: &serde_json::Value, filter: &MemoryFilter) -> bool {
+    crate::filter::matches_filter(payload, filter)
 }
 
 #[async_trait]
@@ -343,5 +474,139 @@ impl VectorIndex for UpstashVectorIndex {
             )));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_build_filter_user_id_only() {
+        let f = MemoryFilter {
+            user_id: Some("alice".into()),
+            ..Default::default()
+        };
+        assert_eq!(build_filter(&f), Some("user_id = 'alice'".into()));
+    }
+
+    #[test]
+    fn test_build_filter_metadata_simple_eq() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"status": "active"})),
+            ..Default::default()
+        };
+        assert_eq!(build_filter(&f), Some("metadata.status = 'active'".into()));
+    }
+
+    #[test]
+    fn test_build_filter_metadata_operators() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"score": {"gt": 50}})),
+            ..Default::default()
+        };
+        assert_eq!(build_filter(&f), Some("metadata.score > 50".into()));
+
+        let f2 = MemoryFilter {
+            metadata: Some(json!({"score": {"lte": 100}})),
+            ..Default::default()
+        };
+        assert_eq!(build_filter(&f2), Some("metadata.score <= 100".into()));
+    }
+
+    #[test]
+    fn test_build_filter_metadata_in() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"tag": {"in": ["rust", "python"]}})),
+            ..Default::default()
+        };
+        assert_eq!(
+            build_filter(&f),
+            Some("metadata.tag IN ('rust', 'python')".into())
+        );
+    }
+
+    #[test]
+    fn test_build_filter_metadata_contains() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"desc": {"contains": "hello"}})),
+            ..Default::default()
+        };
+        assert_eq!(
+            build_filter(&f),
+            Some("metadata.desc GLOB '*hello*'".into())
+        );
+    }
+
+    #[test]
+    fn test_build_filter_and_combinator() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"AND": [
+                {"status": "active"},
+                {"score": {"gt": 50}}
+            ]})),
+            ..Default::default()
+        };
+        let result = build_filter(&f).unwrap();
+        assert_eq!(
+            result,
+            "(metadata.status = 'active' AND metadata.score > 50)"
+        );
+    }
+
+    #[test]
+    fn test_build_filter_or_combinator() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"OR": [
+                {"status": "active"},
+                {"status": "pending"}
+            ]})),
+            ..Default::default()
+        };
+        let result = build_filter(&f).unwrap();
+        assert_eq!(
+            result,
+            "(metadata.status = 'active' OR metadata.status = 'pending')"
+        );
+    }
+
+    #[test]
+    fn test_build_filter_combined_first_class_and_metadata() {
+        let f = MemoryFilter {
+            user_id: Some("alice".into()),
+            metadata: Some(json!({"status": "active"})),
+            ..Default::default()
+        };
+        let result = build_filter(&f).unwrap();
+        assert_eq!(result, "user_id = 'alice' AND metadata.status = 'active'");
+    }
+
+    #[test]
+    fn test_build_filter_no_conditions() {
+        let f = MemoryFilter::default();
+        assert_eq!(build_filter(&f), None);
+    }
+
+    #[test]
+    fn test_build_filter_ne_operator() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"status": {"ne": "deleted"}})),
+            ..Default::default()
+        };
+        assert_eq!(
+            build_filter(&f),
+            Some("metadata.status != 'deleted'".into())
+        );
+    }
+
+    #[test]
+    fn test_build_filter_not_combinator() {
+        let f = MemoryFilter {
+            metadata: Some(json!({"NOT": [{"status": "deleted"}]})),
+            ..Default::default()
+        };
+        let result = build_filter(&f).unwrap();
+        assert_eq!(result, "NOT (metadata.status = 'deleted')");
     }
 }

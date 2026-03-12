@@ -75,11 +75,18 @@ pub struct SearchResult {
 }
 
 /// Filter criteria for querying memories.
+///
+/// `user_id`, `agent_id`, and `run_id` are first-class equality filters on
+/// top-level payload fields. `metadata` carries an optional JSON value that
+/// is evaluated against the nested `payload.metadata` object using the
+/// filter DSL (simple equality, operators like eq/gt/in, and AND/OR/NOT).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MemoryFilter {
     pub user_id: Option<String>,
     pub agent_id: Option<String>,
     pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Value>,
 }
 
 /// A chat message in the conversation.

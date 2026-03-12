@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional, Union
+import json as _json
+from typing import Any, Dict, Optional, Union
 
 from mem7._mem7 import PyMemoryEngine
 from mem7.config import MemoryConfig
@@ -70,9 +71,13 @@ class Memory:
         user_id: Optional[str] = None,
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> dict:
         msgs = _normalize_messages(messages)
-        result = self._engine.add(msgs, user_id=user_id, agent_id=agent_id, run_id=run_id)
+        meta_json = _json.dumps(metadata) if metadata is not None else None
+        result = self._engine.add(
+            msgs, user_id=user_id, agent_id=agent_id, run_id=run_id, metadata=meta_json
+        )
         return _add_result_to_dict(result)
 
     def search(
@@ -83,9 +88,12 @@ class Memory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
         limit: int = 5,
+        filters: Optional[Dict[str, Any]] = None,
     ) -> dict:
+        filters_json = _json.dumps(filters) if filters is not None else None
         result = self._engine.search(
-            query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit
+            query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
+            filters=filters_json,
         )
         return _search_result_to_dict(result)
 
@@ -98,8 +106,12 @@ class Memory:
         user_id: Optional[str] = None,
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
     ) -> list:
-        items = self._engine.get_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
+        filters_json = _json.dumps(filters) if filters is not None else None
+        items = self._engine.get_all(
+            user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json
+        )
         return [_memory_item_to_dict(item) for item in items]
 
     def update(self, memory_id: str, new_text: str) -> None:
@@ -144,12 +156,16 @@ class AsyncMemory:
         user_id: Optional[str] = None,
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> dict:
         msgs = _normalize_messages(messages)
+        meta_json = _json.dumps(metadata) if metadata is not None else None
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             None,
-            lambda: self._engine.add(msgs, user_id=user_id, agent_id=agent_id, run_id=run_id),
+            lambda: self._engine.add(
+                msgs, user_id=user_id, agent_id=agent_id, run_id=run_id, metadata=meta_json
+            ),
         )
         return _add_result_to_dict(result)
 
@@ -161,12 +177,15 @@ class AsyncMemory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
         limit: int = 5,
+        filters: Optional[Dict[str, Any]] = None,
     ) -> dict:
+        filters_json = _json.dumps(filters) if filters is not None else None
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             None,
             lambda: self._engine.search(
-                query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit
+                query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
+                filters=filters_json,
             ),
         )
         return _search_result_to_dict(result)
@@ -182,12 +201,14 @@ class AsyncMemory:
         user_id: Optional[str] = None,
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
     ) -> list:
+        filters_json = _json.dumps(filters) if filters is not None else None
         loop = asyncio.get_event_loop()
         items = await loop.run_in_executor(
             None,
             lambda: self._engine.get_all(
-                user_id=user_id, agent_id=agent_id, run_id=run_id
+                user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json
             ),
         )
         return [_memory_item_to_dict(item) for item in items]

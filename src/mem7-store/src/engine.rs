@@ -43,12 +43,16 @@ impl MemoryEngine {
     }
 
     /// Add memories from a conversation. Extracts facts, deduplicates, and stores.
+    ///
+    /// `metadata` is an optional JSON object that will be stored alongside each
+    /// memory under the `payload.metadata` key and can be filtered on later.
     pub async fn add(
         &self,
         messages: &[ChatMessage],
         user_id: Option<&str>,
         agent_id: Option<&str>,
         run_id: Option<&str>,
+        metadata: Option<&serde_json::Value>,
     ) -> Result<AddResult> {
         let facts = pipeline::extract_facts(
             self.llm.as_ref(),
@@ -72,6 +76,7 @@ impl MemoryEngine {
             user_id: user_id.map(String::from),
             agent_id: agent_id.map(String::from),
             run_id: run_id.map(String::from),
+            metadata: None,
         };
         let mut all_retrieved: Vec<(Uuid, String, f32)> = Vec::new();
 
@@ -107,7 +112,7 @@ impl MemoryEngine {
                     let vecs = self.embedder.embed(std::slice::from_ref(text)).await?;
                     let vec = vecs.into_iter().next().unwrap_or_default();
 
-                    let payload = serde_json::json!({
+                    let mut payload = serde_json::json!({
                         "text": text,
                         "user_id": user_id,
                         "agent_id": agent_id,
@@ -115,6 +120,9 @@ impl MemoryEngine {
                         "created_at": now,
                         "updated_at": now,
                     });
+                    if let Some(meta) = metadata {
+                        payload["metadata"] = meta.clone();
+                    }
 
                     self.vector_index.insert(memory_id, &vec, payload).await?;
 
@@ -137,13 +145,16 @@ impl MemoryEngine {
                         let vecs = self.embedder.embed(std::slice::from_ref(text)).await?;
                         let vec = vecs.into_iter().next().unwrap_or_default();
 
-                        let payload = serde_json::json!({
+                        let mut payload = serde_json::json!({
                             "text": text,
                             "user_id": user_id,
                             "agent_id": agent_id,
                             "run_id": run_id,
                             "updated_at": now,
                         });
+                        if let Some(meta) = metadata {
+                            payload["metadata"] = meta.clone();
+                        }
 
                         self.vector_index
                             .update(&real_id, Some(&vec), Some(payload))
@@ -188,6 +199,9 @@ impl MemoryEngine {
     }
 
     /// Search memories by semantic similarity.
+    ///
+    /// `filters` is an optional JSON object evaluated against `payload.metadata`
+    /// using the filter DSL (simple equality, operators, AND/OR/NOT).
     pub async fn search(
         &self,
         query: &str,
@@ -195,6 +209,7 @@ impl MemoryEngine {
         agent_id: Option<&str>,
         run_id: Option<&str>,
         limit: usize,
+        filters: Option<&serde_json::Value>,
     ) -> Result<SearchResult> {
         let vecs = self.embedder.embed(&[query.to_string()]).await?;
         let query_vec = vecs.into_iter().next().unwrap_or_default();
@@ -203,6 +218,7 @@ impl MemoryEngine {
             user_id: user_id.map(String::from),
             agent_id: agent_id.map(String::from),
             run_id: run_id.map(String::from),
+            metadata: filters.cloned(),
         };
 
         let results = self
@@ -235,11 +251,13 @@ impl MemoryEngine {
         user_id: Option<&str>,
         agent_id: Option<&str>,
         run_id: Option<&str>,
+        filters: Option<&serde_json::Value>,
     ) -> Result<Vec<MemoryItem>> {
         let filter = MemoryFilter {
             user_id: user_id.map(String::from),
             agent_id: agent_id.map(String::from),
             run_id: run_id.map(String::from),
+            metadata: filters.cloned(),
         };
 
         let entries = self.vector_index.list(Some(&filter), None).await?;
@@ -315,6 +333,7 @@ impl MemoryEngine {
             user_id: user_id.map(String::from),
             agent_id: agent_id.map(String::from),
             run_id: run_id.map(String::from),
+            metadata: None,
         };
 
         let entries = self.vector_index.list(Some(&filter), None).await?;

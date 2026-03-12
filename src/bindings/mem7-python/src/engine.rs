@@ -39,18 +39,24 @@ impl PyMemoryEngine {
         })
     }
 
-    #[pyo3(signature = (messages, user_id=None, agent_id=None, run_id=None))]
+    #[pyo3(signature = (messages, user_id=None, agent_id=None, run_id=None, metadata=None))]
     fn add(
         &self,
         messages: Vec<(String, String)>,
         user_id: Option<String>,
         agent_id: Option<String>,
         run_id: Option<String>,
+        metadata: Option<String>,
     ) -> PyResult<PyAddResult> {
         let msgs: Vec<ChatMessage> = messages
             .into_iter()
             .map(|(role, content)| ChatMessage { role, content })
             .collect();
+
+        let meta_val: Option<serde_json::Value> = metadata
+            .map(|s| serde_json::from_str(&s))
+            .transpose()
+            .map_err(|e| PyRuntimeError::new_err(format!("Invalid metadata JSON: {e}")))?;
 
         let result = self
             .rt
@@ -59,13 +65,14 @@ impl PyMemoryEngine {
                 user_id.as_deref(),
                 agent_id.as_deref(),
                 run_id.as_deref(),
+                meta_val.as_ref(),
             ))
             .map_err(to_py_err)?;
 
         Ok(result.into())
     }
 
-    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5))]
+    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None))]
     fn search(
         &self,
         query: &str,
@@ -73,7 +80,13 @@ impl PyMemoryEngine {
         agent_id: Option<String>,
         run_id: Option<String>,
         limit: usize,
+        filters: Option<String>,
     ) -> PyResult<PySearchResult> {
+        let filters_val: Option<serde_json::Value> = filters
+            .map(|s| serde_json::from_str(&s))
+            .transpose()
+            .map_err(|e| PyRuntimeError::new_err(format!("Invalid filters JSON: {e}")))?;
+
         let result = self
             .rt
             .block_on(self.inner.search(
@@ -82,6 +95,7 @@ impl PyMemoryEngine {
                 agent_id.as_deref(),
                 run_id.as_deref(),
                 limit,
+                filters_val.as_ref(),
             ))
             .map_err(to_py_err)?;
 
@@ -96,19 +110,26 @@ impl PyMemoryEngine {
         Ok(item.into())
     }
 
-    #[pyo3(signature = (user_id=None, agent_id=None, run_id=None))]
+    #[pyo3(signature = (user_id=None, agent_id=None, run_id=None, filters=None))]
     fn get_all(
         &self,
         user_id: Option<String>,
         agent_id: Option<String>,
         run_id: Option<String>,
+        filters: Option<String>,
     ) -> PyResult<Vec<PyMemoryItem>> {
+        let filters_val: Option<serde_json::Value> = filters
+            .map(|s| serde_json::from_str(&s))
+            .transpose()
+            .map_err(|e| PyRuntimeError::new_err(format!("Invalid filters JSON: {e}")))?;
+
         let items = self
             .rt
             .block_on(self.inner.get_all(
                 user_id.as_deref(),
                 agent_id.as_deref(),
                 run_id.as_deref(),
+                filters_val.as_ref(),
             ))
             .map_err(to_py_err)?;
 

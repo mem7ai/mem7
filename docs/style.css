@@ -105,6 +105,22 @@ a:hover { opacity: 0.8; }
   text-align: center;
 }
 
+.hero-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  object-fit: contain;
+  margin-bottom: 28px;
+}
+
+.hero h1 {
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
 .badge {
   display: inline-block;
   padding: 6px 16px;
@@ -115,14 +131,6 @@ a:hover { opacity: 0.8; }
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 24px;
-}
-
-.hero h1 {
-  font-size: clamp(36px, 5vw, 56px);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  margin-bottom: 20px;
 }
 
 .hero-sub {

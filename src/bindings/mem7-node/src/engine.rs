@@ -37,6 +37,7 @@ impl JsMemoryEngine {
         user_id: Option<String>,
         agent_id: Option<String>,
         run_id: Option<String>,
+        metadata: Option<String>,
     ) -> Result<JsAddResult> {
         let msgs: Vec<ChatMessage> = messages
             .into_iter()
@@ -46,6 +47,11 @@ impl JsMemoryEngine {
             })
             .collect();
 
+        let meta_val: Option<serde_json::Value> = metadata
+            .map(|s| serde_json::from_str(&s))
+            .transpose()
+            .map_err(|e| Error::new(Status::InvalidArg, format!("Invalid metadata JSON: {e}")))?;
+
         let result = self
             .inner
             .add(
@@ -53,6 +59,7 @@ impl JsMemoryEngine {
                 user_id.as_deref(),
                 agent_id.as_deref(),
                 run_id.as_deref(),
+                meta_val.as_ref(),
             )
             .await
             .map_err(to_napi_err)?;
@@ -68,7 +75,13 @@ impl JsMemoryEngine {
         agent_id: Option<String>,
         run_id: Option<String>,
         limit: Option<u32>,
+        filters: Option<String>,
     ) -> Result<JsSearchResult> {
+        let filters_val: Option<serde_json::Value> = filters
+            .map(|s| serde_json::from_str(&s))
+            .transpose()
+            .map_err(|e| Error::new(Status::InvalidArg, format!("Invalid filters JSON: {e}")))?;
+
         let result = self
             .inner
             .search(
@@ -77,6 +90,7 @@ impl JsMemoryEngine {
                 agent_id.as_deref(),
                 run_id.as_deref(),
                 limit.unwrap_or(5) as usize,
+                filters_val.as_ref(),
             )
             .await
             .map_err(to_napi_err)?;
@@ -99,10 +113,21 @@ impl JsMemoryEngine {
         user_id: Option<String>,
         agent_id: Option<String>,
         run_id: Option<String>,
+        filters: Option<String>,
     ) -> Result<Vec<JsMemoryItem>> {
+        let filters_val: Option<serde_json::Value> = filters
+            .map(|s| serde_json::from_str(&s))
+            .transpose()
+            .map_err(|e| Error::new(Status::InvalidArg, format!("Invalid filters JSON: {e}")))?;
+
         let items = self
             .inner
-            .get_all(user_id.as_deref(), agent_id.as_deref(), run_id.as_deref())
+            .get_all(
+                user_id.as_deref(),
+                agent_id.as_deref(),
+                run_id.as_deref(),
+                filters_val.as_ref(),
+            )
             .await
             .map_err(to_napi_err)?;
 
