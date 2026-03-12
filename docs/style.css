@@ -279,22 +279,94 @@ a:hover { opacity: 0.8; }
 .fn { color: #61afef; }
 .attr { color: #e5c07b; }
 
-/* ── Architecture ────────────────────────────────────────────── */
-.arch-diagram {
+/* ── Architecture Visual ─────────────────────────────────────── */
+.arch-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 56px;
 }
 
-.arch-pre {
-  font-family: var(--mono);
+.arch-api-layer {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.arch-label-lang {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.arch-label-sep {
+  color: var(--text-3);
+  font-size: 18px;
+}
+
+.arch-binding {
+  width: 100%;
+  text-align: center;
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--accent);
+  color: var(--text-3);
+  font-family: var(--mono);
+  margin-top: 4px;
+}
+
+.arch-arrow {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.arch-core {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 32px;
-  overflow-x: auto;
-  white-space: pre;
+  padding: 28px 32px 24px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.arch-core-title {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.arch-core-title span {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.arch-modules {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.arch-mod {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  text-align: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.arch-mod:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ── Features Grid ───────────────────────────────────────────── */
