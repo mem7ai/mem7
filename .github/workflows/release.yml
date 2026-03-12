@@ -18,9 +18,8 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          # aarch64-unknown-linux-gnu removed: ring crate's ARM assembly
-          # fails to cross-compile in the manylinux x86_64 container.
-          # TODO: re-add with Zig cross-compilation (maturin --zig).
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
           - os: macos-latest
@@ -38,6 +37,7 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist
           manylinux: auto
+          before-script-linux: yum install -y cmake3 perl-IPC-Cmd && ln -sf /usr/bin/cmake3 /usr/bin/cmake || true
       - uses: actions/upload-artifact@v6
         with:
           name: wheels-${{ matrix.target }}
