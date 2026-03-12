@@ -133,8 +133,6 @@ jobs:
           npx napi create-npm-dirs
           npx napi artifacts
           npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ── Publish Rust crates to crates.io ───────────────────────────────
   publish-crates:
