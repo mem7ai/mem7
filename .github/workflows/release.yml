@@ -18,9 +18,8 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          # aarch64-unknown-linux-gnu: both ring and aws-lc-rs fail to
-          # cross-compile ARM assembly inside the manylinux container.
-          # Requires a native ARM runner or Zig cross-compilation.
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
           - os: macos-latest
@@ -34,6 +33,10 @@ jobs:
           python-version: "3.12"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          # manylinux container's binutils is too old for aws-lc-sys's
+          # ARMv8.4 assembly (sha3/eor3); fall back to pure C on aarch64.
+          AWS_LC_SYS_NO_ASM: ${{ contains(matrix.target, 'aarch64-unknown-linux') && '1' || '' }}
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
