@@ -32,9 +32,7 @@ impl PyMemoryEngine {
             .build()
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to build tokio runtime: {e}")))?;
 
-        let engine = rt
-            .block_on(MemoryEngine::new(config))
-            .map_err(to_py_err)?;
+        let engine = rt.block_on(MemoryEngine::new(config)).map_err(to_py_err)?;
 
         Ok(Self {
             inner: Arc::new(engine),
@@ -144,9 +142,7 @@ impl PyMemoryEngine {
         let uuid = uuid::Uuid::parse_str(memory_id)
             .map_err(|e| PyRuntimeError::new_err(format!("Invalid UUID: {e}")))?;
 
-        self.rt
-            .block_on(self.inner.delete(uuid))
-            .map_err(to_py_err)
+        self.rt.block_on(self.inner.delete(uuid)).map_err(to_py_err)
     }
 
     /// Delete all memories matching filters.

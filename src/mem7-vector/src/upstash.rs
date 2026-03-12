@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use mem7_error::{Mem7Error, Result};
 use mem7_core::MemoryFilter;
+use mem7_error::{Mem7Error, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -58,9 +58,9 @@ impl UpstashVectorIndex {
             )));
         }
 
-        resp.json().await.map_err(|e| {
-            Mem7Error::VectorStore(format!("Upstash response parse error: {e}"))
-        })
+        resp.json()
+            .await
+            .map_err(|e| Mem7Error::VectorStore(format!("Upstash response parse error: {e}")))
     }
 }
 
@@ -270,9 +270,10 @@ impl VectorIndex for UpstashVectorIndex {
             )));
         }
 
-        let data: UpstashResponse<Option<FetchResultEntry>> = resp.json().await.map_err(|e| {
-            Mem7Error::VectorStore(format!("Upstash fetch parse error: {e}"))
-        })?;
+        let data: UpstashResponse<Option<FetchResultEntry>> = resp
+            .json()
+            .await
+            .map_err(|e| Mem7Error::VectorStore(format!("Upstash fetch parse error: {e}")))?;
 
         Ok(data.result.map(|entry| {
             (

@@ -29,7 +29,10 @@ impl LlmClient for OpenAICompatibleLlm {
         messages: &[LlmMessage],
         response_format: Option<&ResponseFormat>,
     ) -> Result<LlmResponse> {
-        let url = format!("{}/chat/completions", self.config.base_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/chat/completions",
+            self.config.base_url.trim_end_matches('/')
+        );
 
         let body = ChatCompletionRequest {
             model: self.config.model.clone(),

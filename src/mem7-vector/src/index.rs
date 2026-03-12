@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 
 use async_trait::async_trait;
-use mem7_error::{Mem7Error, Result};
 use mem7_core::MemoryFilter;
+use mem7_error::{Mem7Error, Result};
 use uuid::Uuid;
 
 use crate::distance::DistanceMetric;
@@ -73,7 +73,11 @@ impl VectorIndex for FlatIndex {
             })
             .collect();
 
-        scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         scored.truncate(limit);
         Ok(scored)
     }
@@ -171,7 +175,11 @@ mod tests {
         let id2 = Uuid::now_v7();
 
         index
-            .insert(id1, &[1.0, 0.0, 0.0], serde_json::json!({"user_id": "alice"}))
+            .insert(
+                id1,
+                &[1.0, 0.0, 0.0],
+                serde_json::json!({"user_id": "alice"}),
+            )
             .await
             .unwrap();
         index

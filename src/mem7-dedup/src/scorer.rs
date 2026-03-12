@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use mem7_error::{Mem7Error, Result};
 use mem7_core::MemoryAction;
+use mem7_error::{Mem7Error, Result};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -50,9 +50,7 @@ impl Default for IdMapping {
 
 /// Build the "existing memory" dict that gets sent to the LLM for comparison.
 /// Maps each existing memory to an integer ID for stability.
-pub fn build_existing_memory_dict(
-    existing: &[(Uuid, String)],
-) -> (serde_json::Value, IdMapping) {
+pub fn build_existing_memory_dict(existing: &[(Uuid, String)]) -> (serde_json::Value, IdMapping) {
     let mut mapping = IdMapping::new();
     let mut entries = Vec::new();
 
@@ -92,7 +90,9 @@ pub fn parse_memory_update_response(json_str: &str) -> Result<MemoryUpdateRespon
     };
 
     serde_json::from_str(cleaned).map_err(|e| {
-        Mem7Error::Serialization(format!("Failed to parse memory update response: {e}\nRaw: {json_str}"))
+        Mem7Error::Serialization(format!(
+            "Failed to parse memory update response: {e}\nRaw: {json_str}"
+        ))
     })
 }
 

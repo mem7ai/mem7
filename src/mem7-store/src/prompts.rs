@@ -65,9 +65,7 @@ pub fn build_update_memory_prompt(
     let memory_part = if existing_memory_json == "[]" {
         "Current memory is empty.".to_string()
     } else {
-        format!(
-            "Below is the current content of my memory:\n\n```\n{existing_memory_json}\n```"
-        )
+        format!("Below is the current content of my memory:\n\n```\n{existing_memory_json}\n```")
     };
 
     format!(

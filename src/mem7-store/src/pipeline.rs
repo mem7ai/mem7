@@ -1,9 +1,9 @@
-use mem7_error::{Mem7Error, Result};
 use mem7_core::{ChatMessage, Fact};
 use mem7_dedup::{
     MemoryUpdateResponse, build_existing_memory_dict, deduplicate_memories,
     parse_memory_update_response,
 };
+use mem7_error::{Mem7Error, Result};
 use mem7_llm::{LlmClient, LlmMessage, ResponseFormat};
 use serde::Deserialize;
 use tracing::debug;
@@ -29,10 +29,7 @@ pub async fn extract_facts(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let llm_messages = vec![
-        LlmMessage::system(prompt),
-        LlmMessage::user(conversation),
-    ];
+    let llm_messages = vec![LlmMessage::system(prompt), LlmMessage::user(conversation)];
 
     let response = llm
         .chat_completion(&llm_messages, Some(&ResponseFormat::json()))
@@ -42,11 +39,7 @@ pub async fn extract_facts(
 
     let output: FactExtractionOutput = parse_json_response(&response.content)?;
 
-    Ok(output
-        .facts
-        .into_iter()
-        .map(|text| Fact { text })
-        .collect())
+    Ok(output.facts.into_iter().map(|text| Fact { text }).collect())
 }
 
 /// Ask the LLM to decide how to update memory given new facts and existing memories.
@@ -63,11 +56,8 @@ pub async fn decide_memory_updates(
     let facts_list: Vec<String> = new_facts.iter().map(|f| f.text.clone()).collect();
     let facts_str = serde_json::to_string(&facts_list)?;
 
-    let prompt = crate::prompts::build_update_memory_prompt(
-        custom_prompt,
-        &existing_str,
-        &facts_str,
-    );
+    let prompt =
+        crate::prompts::build_update_memory_prompt(custom_prompt, &existing_str, &facts_str);
 
     let llm_messages = vec![LlmMessage::user(prompt)];
 

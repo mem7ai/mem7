@@ -8,8 +8,8 @@ pub use index::FlatIndex;
 pub use upstash::UpstashVectorIndex;
 
 use async_trait::async_trait;
-use mem7_error::Result;
 use mem7_core::MemoryFilter;
+use mem7_error::Result;
 use uuid::Uuid;
 
 /// A vector search result entry.

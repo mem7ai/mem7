@@ -1,5 +1,5 @@
-use mem7_error::Result;
 use mem7_core::{MemoryAction, MemoryEvent, new_memory_id};
+use mem7_error::Result;
 use rusqlite::params;
 use tokio_rusqlite::Connection;
 use uuid::Uuid;

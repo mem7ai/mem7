@@ -39,10 +39,7 @@ struct EmbeddingData {
 #[async_trait]
 impl EmbeddingClient for OpenAICompatibleEmbedding {
     async fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
-        let url = format!(
-            "{}/embeddings",
-            self.config.base_url.trim_end_matches('/')
-        );
+        let url = format!("{}/embeddings", self.config.base_url.trim_end_matches('/'));
 
         let body = EmbeddingRequest {
             model: self.config.model.clone(),

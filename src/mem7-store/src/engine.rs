@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use mem7_config::MemoryEngineConfig;
-use mem7_error::{Mem7Error, Result};
 use mem7_core::{
     AddResult, ChatMessage, MemoryAction, MemoryActionResult, MemoryEvent, MemoryFilter,
     MemoryItem, SearchResult, new_memory_id,
 };
 use mem7_embedding::{EmbeddingClient, OpenAICompatibleEmbedding};
+use mem7_error::{Mem7Error, Result};
 use mem7_history::SqliteHistory;
 use mem7_llm::{LlmClient, OpenAICompatibleLlm};
 use mem7_vector::{DistanceMetric, FlatIndex, UpstashVectorIndex, VectorIndex, VectorSearchResult};
@@ -102,7 +102,10 @@ impl MemoryEngine {
         let mut all_retrieved: Vec<(Uuid, String, f32)> = Vec::new();
 
         for embedding in &embeddings {
-            let results = self.vector_index.search(embedding, 5, Some(&filter)).await?;
+            let results = self
+                .vector_index
+                .search(embedding, 5, Some(&filter))
+                .await?;
             for VectorSearchResult { id, score, payload } in results {
                 if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
                     all_retrieved.push((id, text.to_string(), score));
@@ -281,7 +284,11 @@ impl MemoryEngine {
             .await?
             .ok_or_else(|| Mem7Error::NotFound(format!("memory {memory_id}")))?;
 
-        let old_text = entry.1.get("text").and_then(|v| v.as_str()).map(String::from);
+        let old_text = entry
+            .1
+            .get("text")
+            .and_then(|v| v.as_str())
+            .map(String::from);
 
         let vecs = self.embedder.embed(&[new_text.to_string()]).await?;
         let vec = vecs.into_iter().next().unwrap_or_default();
@@ -358,11 +365,7 @@ impl MemoryEngine {
     }
 }
 
-fn payload_to_memory_item(
-    id: Uuid,
-    payload: &serde_json::Value,
-    score: Option<f32>,
-) -> MemoryItem {
+fn payload_to_memory_item(id: Uuid, payload: &serde_json::Value, score: Option<f32>) -> MemoryItem {
     MemoryItem {
         id,
         text: payload
