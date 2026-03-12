@@ -603,6 +603,7 @@ dependencies = [
  "mem7-llm",
  "mem7-store",
  "mem7-vector",
+ "tokio",
 ]
 
 [[package]]

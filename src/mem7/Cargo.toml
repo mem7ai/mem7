@@ -16,3 +16,4 @@ mem7-vector.workspace = true
 mem7-history.workspace = true
 mem7-dedup.workspace = true
 mem7-store.workspace = true
+tokio.workspace = true
