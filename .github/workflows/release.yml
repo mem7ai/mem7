@@ -33,15 +33,14 @@ jobs:
           python-version: "3.12"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
-        env:
-          # manylinux container's binutils is too old for aws-lc-sys's
-          # ARMv8.4 assembly (sha3/eor3); fall back to pure C on aarch64.
-          AWS_LC_SYS_NO_ASM: ${{ contains(matrix.target, 'aarch64-unknown-linux') && '1' || '' }}
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
           manylinux: auto
+          # cmake for aws-lc-sys; AWS_LC_SYS_NO_ASM for aarch64 where
+          # the manylinux binutils is too old for ARMv8.4 assembly.
           before-script-linux: yum install -y cmake3 perl-IPC-Cmd && ln -sf /usr/bin/cmake3 /usr/bin/cmake || true
+          docker-options: ${{ contains(matrix.target, 'aarch64-unknown-linux') && '-e AWS_LC_SYS_NO_ASM=1' || '' }}
       - uses: actions/upload-artifact@v6
         with:
           name: wheels-${{ matrix.target }}
