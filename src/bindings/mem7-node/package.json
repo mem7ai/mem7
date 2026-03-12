@@ -1,6 +1,6 @@
 {
   "name": "@mem7ai/mem7",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "LLM-powered long-term memory engine — Rust core with Node.js bindings",
   "main": "index.js",
   "types": "index.d.ts",
