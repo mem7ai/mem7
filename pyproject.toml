@@ -4,7 +4,7 @@ requires = ["maturin>=1.5,<2"]
 
 [project]
 name = "mem7"
-version = "0.1.0"
+version = "0.1.1"
 description = "High-performance AI memory engine with Rust core"
 requires-python = ">=3.10"
 dependencies = [

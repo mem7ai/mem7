@@ -79,10 +79,10 @@ jobs:
           name: sdist
           path: dist
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --non-interactive --skip-existing dist/*
+          packages-dir: dist/
+          skip-existing: true
 
   # ── Publish Rust crates to crates.io ───────────────────────────────
   publish-crates:
