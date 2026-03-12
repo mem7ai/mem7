@@ -1,14 +1,22 @@
 # mem7
 
-LLM-powered long-term memory engine — Rust core with Python bindings.
+LLM-powered long-term memory engine — Rust core with multi-language bindings.
 
 mem7 extracts factual statements from conversations, deduplicates them against existing memories, and stores the results in a vector database with full audit history.
+
+## Install
+
+```bash
+pip install mem7          # Python
+npm install @mem7ai/mem7  # Node.js / TypeScript
+cargo add mem7            # Rust
+```
 
 ## Architecture
 
 ```
-Python API (mem7.Memory)
-    │  JSON over PyO3
+Python / TypeScript / Rust API
+    │  PyO3 / napi-rs / native
     ▼
 Rust Core (tokio async runtime)
     ├── mem7-llm        — OpenAI-compatible LLM client
@@ -19,11 +27,7 @@ Rust Core (tokio async runtime)
     └── mem7-store      — Pipeline orchestrator (MemoryEngine)
 ```
 
-## Quick Start
-
-```bash
-pip install mem7
-```
+## Quick Start (Python)
 
 ```python
 from mem7 import Memory
@@ -44,14 +48,101 @@ config = MemoryConfig(
 )
 
 m = Memory(config=config)
-
-# Add memories from conversation
 m.add("I love playing tennis and my coach is Sarah.", user_id="alice")
-
-# Semantic search
 results = m.search("What sports does Alice play?", user_id="alice")
-print(results)
 ```
+
+## Quick Start (TypeScript)
+
+```typescript
+import { MemoryEngine } from "@mem7ai/mem7";
+
+const engine = await MemoryEngine.create(JSON.stringify({
+  llm: { base_url: "http://localhost:11434/v1", api_key: "ollama", model: "qwen2.5:7b" },
+  embedding: { base_url: "http://localhost:11434/v1", api_key: "ollama", model: "mxbai-embed-large", dims: 1024 },
+}));
+
+await engine.add([{ role: "user", content: "I love playing tennis and my coach is Sarah." }], "alice");
+const results = await engine.search("What sports does Alice play?", "alice");
+```
+
+## Supported Providers
+
+mem7 uses a single **OpenAI-compatible client** for both LLM and Embedding, which covers any service that exposes the OpenAI API format. This includes most major providers out of the box.
+
+### LLMs
+
+| Provider | mem0 | mem7 | Notes |
+|----------|:----:|:----:|-------|
+| OpenAI | :white_check_mark: | :white_check_mark: | Native support |
+| Ollama | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| vLLM | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Groq | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Together | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| DeepSeek | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| xAI (Grok) | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| LM Studio | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Azure OpenAI | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Anthropic | :white_check_mark: | :x: | Requires native SDK |
+| Gemini | :white_check_mark: | :x: | Requires native SDK |
+| Vertex AI | :white_check_mark: | :x: | Requires native SDK |
+| AWS Bedrock | :white_check_mark: | :x: | Requires native SDK |
+| LiteLLM | :white_check_mark: | :x: | Python proxy |
+| Sarvam | :white_check_mark: | :x: | Requires native SDK |
+| LangChain | :white_check_mark: | :x: | Python framework |
+
+### Embeddings
+
+| Provider | mem0 | mem7 | Notes |
+|----------|:----:|:----:|-------|
+| OpenAI | :white_check_mark: | :white_check_mark: | Native support |
+| Ollama | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Together | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| LM Studio | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Azure OpenAI | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| Hugging Face | :white_check_mark: | :x: | Requires native SDK |
+| Gemini | :white_check_mark: | :x: | Requires native SDK |
+| Vertex AI | :white_check_mark: | :x: | Requires native SDK |
+| AWS Bedrock | :white_check_mark: | :x: | Requires native SDK |
+| FastEmbed | :white_check_mark: | :x: | Python-only (ONNX) |
+| LangChain | :white_check_mark: | :x: | Python framework |
+
+### Vector Stores
+
+| Provider | mem0 | mem7 | Notes |
+|----------|:----:|:----:|-------|
+| In-memory (FlatIndex) | — | :white_check_mark: | Built-in, good for dev |
+| Upstash Vector | :white_check_mark: | :white_check_mark: | REST API, serverless |
+| Qdrant | :white_check_mark: | :x: | |
+| Chroma | :white_check_mark: | :x: | |
+| pgvector | :white_check_mark: | :x: | |
+| Milvus | :white_check_mark: | :x: | |
+| Pinecone | :white_check_mark: | :x: | |
+| Redis | :white_check_mark: | :x: | |
+| Weaviate | :white_check_mark: | :x: | |
+| Elasticsearch | :white_check_mark: | :x: | |
+| OpenSearch | :white_check_mark: | :x: | |
+| FAISS | :white_check_mark: | :x: | |
+| MongoDB | :white_check_mark: | :x: | |
+| Supabase | :white_check_mark: | :x: | |
+| Azure AI Search | :white_check_mark: | :x: | |
+| Vertex AI Vector Search | :white_check_mark: | :x: | |
+| Databricks | :white_check_mark: | :x: | |
+| Cassandra | :white_check_mark: | :x: | |
+| S3 Vectors | :white_check_mark: | :x: | |
+| Baidu | :white_check_mark: | :x: | |
+| Neptune | :white_check_mark: | :x: | |
+| Valkey | :white_check_mark: | :x: | |
+| LangChain | :white_check_mark: | :x: | |
+
+### Language Bindings
+
+| Language | Status |
+|----------|--------|
+| Python | :white_check_mark: PyPI: `pip install mem7` |
+| TypeScript / Node.js | :white_check_mark: npm: `npm install @mem7ai/mem7` |
+| Rust | :white_check_mark: crates.io: `cargo add mem7` |
+| Go | Planned |
 
 ## Vector Store Backends
 
@@ -75,12 +166,19 @@ VectorConfig(
 )
 ```
 
+## Examples
+
+See the [`examples/`](examples/) directory:
+- [`mem7_demo.ipynb`](examples/mem7_demo.ipynb) — Python notebook demo
+- [`mem7_demo.ts`](examples/mem7_demo.ts) — TypeScript demo
+
 ## Development
 
 ### Prerequisites
 
 - Rust 1.85+ (stable)
 - Python 3.10+
+- Node.js 22+
 - [maturin](https://github.com/PyO3/maturin)
 
 ### Build
