@@ -260,12 +260,16 @@ impl VectorIndex for UpstashVectorIndex {
     async fn get(&self, id: &Uuid) -> Result<Option<(Vec<f32>, serde_json::Value)>> {
         let ids = vec![id.to_string()];
 
-        let resp: UpstashResponse<Vec<FetchResultEntry>> =
-            self.post("fetch", &FetchRequest {
-                ids,
-                include_metadata: true,
-                include_vectors: true,
-            }).await?;
+        let resp: UpstashResponse<Vec<FetchResultEntry>> = self
+            .post(
+                "fetch",
+                &FetchRequest {
+                    ids,
+                    include_metadata: true,
+                    include_vectors: true,
+                },
+            )
+            .await?;
 
         Ok(resp.result.into_iter().next().map(|entry| {
             (
