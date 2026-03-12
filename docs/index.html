@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mem7 — LLM-powered memory engine</title>
+  <meta name="description" content="High-performance LLM memory engine built in Rust with Python, TypeScript, and Rust bindings.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- ── Navigation ──────────────────────────────────────────────── -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-mark">m7</span>
+        <span class="logo-text">mem7</span>
+      </a>
+      <div class="nav-links">
+        <a href="#quickstart">Quick Start</a>
+        <a href="#features">Features</a>
+        <a href="#providers">Providers</a>
+        <a href="https://github.com/mem7ai/mem7" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <div class="badge">Open Source &middot; Apache-2.0</div>
+      <h1>LLM-powered long-term<br>memory engine</h1>
+      <p class="hero-sub">
+        Rust core with Python, TypeScript &amp; Rust bindings.<br>
+        Extracts facts from conversations, deduplicates, and stores them in vector databases with full audit history.
+      </p>
+      <div class="install-tabs">
+        <div class="install-tab-bar">
+          <button class="install-tab active" data-install="python">Python</button>
+          <button class="install-tab" data-install="typescript">TypeScript</button>
+          <button class="install-tab" data-install="rust">Rust</button>
+        </div>
+        <div class="install-panel active" data-install-panel="python">
+          <code>pip install mem7</code>
+          <button class="copy-btn" data-copy="pip install mem7" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        <div class="install-panel" data-install-panel="typescript">
+          <code>npm install @mem7ai/mem7</code>
+          <button class="copy-btn" data-copy="npm install @mem7ai/mem7" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        <div class="install-panel" data-install-panel="rust">
+          <code>cargo add mem7</code>
+          <button class="copy-btn" data-copy="cargo add mem7" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Quick Start ─────────────────────────────────────────────── -->
+  <section id="quickstart" class="section">
+    <div class="container">
+      <h2>Quick Start</h2>
+      <p class="section-sub">Get up and running in minutes. Pick your language to get started.</p>
+
+      <div class="code-card">
+        <div class="code-tab-bar">
+          <button class="code-tab active" data-lang="python">Python</button>
+          <button class="code-tab" data-lang="typescript">TypeScript</button>
+          <button class="code-tab" data-lang="rust">Rust</button>
+        </div>
+
+        <div class="code-panel active" data-lang-panel="python">
+          <div class="code-header">
+            <span class="code-filename">quickstart.py</span>
+            <button class="copy-btn" data-copy-code="python" aria-label="Copy code">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+<pre><code id="code-python"><span class="kw">from</span> mem7 <span class="kw">import</span> Memory
+<span class="kw">from</span> mem7.config <span class="kw">import</span> MemoryConfig, LlmConfig, EmbeddingConfig
+
+config = MemoryConfig(
+    llm=LlmConfig(
+        base_url=<span class="str">"http://localhost:11434/v1"</span>,
+        api_key=<span class="str">"ollama"</span>,
+        model=<span class="str">"qwen2.5:7b"</span>,
+    ),
+    embedding=EmbeddingConfig(
+        base_url=<span class="str">"http://localhost:11434/v1"</span>,
+        api_key=<span class="str">"ollama"</span>,
+        model=<span class="str">"mxbai-embed-large"</span>,
+        dims=<span class="num">1024</span>,
+    ),
+)
+
+m = Memory(config=config)
+
+<span class="cmt"># Add a memory from conversation</span>
+m.add(<span class="str">"I love playing tennis and my coach is Sarah."</span>, user_id=<span class="str">"alice"</span>)
+
+<span class="cmt"># Semantic search</span>
+results = m.search(<span class="str">"What sports does Alice play?"</span>, user_id=<span class="str">"alice"</span>)
+
+<span class="cmt"># Get all memories for a user</span>
+memories = m.get_all(user_id=<span class="str">"alice"</span>)
+</code></pre>
+        </div>
+
+        <div class="code-panel" data-lang-panel="typescript">
+          <div class="code-header">
+            <span class="code-filename">quickstart.ts</span>
+            <button class="copy-btn" data-copy-code="typescript" aria-label="Copy code">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+<pre><code id="code-typescript"><span class="kw">import</span> { MemoryEngine } <span class="kw">from</span> <span class="str">"@mem7ai/mem7"</span>;
+
+<span class="kw">const</span> engine = <span class="kw">await</span> MemoryEngine.create(JSON.stringify({
+  llm: {
+    base_url: <span class="str">"http://localhost:11434/v1"</span>,
+    api_key: <span class="str">"ollama"</span>,
+    model: <span class="str">"qwen2.5:7b"</span>,
+  },
+  embedding: {
+    base_url: <span class="str">"http://localhost:11434/v1"</span>,
+    api_key: <span class="str">"ollama"</span>,
+    model: <span class="str">"mxbai-embed-large"</span>,
+    dims: <span class="num">1024</span>,
+  },
+}));
+
+<span class="cmt">// Add a memory from conversation</span>
+<span class="kw">await</span> engine.add(
+  [{ role: <span class="str">"user"</span>, content: <span class="str">"I love playing tennis and my coach is Sarah."</span> }],
+  <span class="str">"alice"</span>
+);
+
+<span class="cmt">// Semantic search</span>
+<span class="kw">const</span> results = <span class="kw">await</span> engine.search(<span class="str">"What sports does Alice play?"</span>, <span class="str">"alice"</span>);
+
+<span class="cmt">// Get all memories for a user</span>
+<span class="kw">const</span> memories = <span class="kw">await</span> engine.getAll(<span class="str">"alice"</span>);
+</code></pre>
+        </div>
+
+        <div class="code-panel" data-lang-panel="rust">
+          <div class="code-header">
+            <span class="code-filename">main.rs</span>
+            <button class="copy-btn" data-copy-code="rust" aria-label="Copy code">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+<pre><code id="code-rust"><span class="kw">use</span> mem7::prelude::*;
+
+<span class="attr">#[tokio::main]</span>
+<span class="kw">async fn</span> <span class="fn">main</span>() -> Result&lt;()&gt; {
+    <span class="kw">let</span> config = MemoryConfig {
+        llm: LlmConfig {
+            base_url: <span class="str">"http://localhost:11434/v1"</span>.into(),
+            api_key: <span class="str">"ollama"</span>.into(),
+            model: <span class="str">"qwen2.5:7b"</span>.into(),
+            ..Default::default()
+        },
+        embedding: EmbeddingConfig {
+            base_url: <span class="str">"http://localhost:11434/v1"</span>.into(),
+            api_key: <span class="str">"ollama"</span>.into(),
+            model: <span class="str">"mxbai-embed-large"</span>.into(),
+            dims: <span class="num">1024</span>,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    <span class="kw">let</span> engine = MemoryEngine::new(config).<span class="kw">await</span>?;
+
+    <span class="cmt">// Add a memory</span>
+    engine.add(messages, <span class="str">"alice"</span>, None, None).<span class="kw">await</span>?;
+
+    <span class="cmt">// Semantic search</span>
+    <span class="kw">let</span> results = engine.search(<span class="str">"What sports?"</span>, <span class="str">"alice"</span>, None, None, <span class="num">5</span>).<span class="kw">await</span>?;
+
+    Ok(())
+}
+</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Architecture ────────────────────────────────────────────── -->
+  <section id="features" class="section section-alt">
+    <div class="container">
+      <h2>Architecture</h2>
+      <p class="section-sub">High-performance Rust core with zero-cost language bindings.</p>
+
+      <div class="arch-diagram">
+<pre class="arch-pre">
+  Python / TypeScript / Rust API
+      │  PyO3 / napi-rs / native
+      ▼
+  ┌─────────────────────────────────────┐
+  │     Rust Core (tokio async runtime) │
+  │                                     │
+  │  ┌───────────┐   ┌──────────────┐  │
+  │  │  mem7-llm  │   │mem7-embedding│  │
+  │  └───────────┘   └──────────────┘  │
+  │  ┌───────────┐   ┌──────────────┐  │
+  │  │mem7-vector │   │ mem7-history │  │
+  │  └───────────┘   └──────────────┘  │
+  │  ┌───────────┐   ┌──────────────┐  │
+  │  │ mem7-dedup │   │  mem7-store  │  │
+  │  └───────────┘   └──────────────┘  │
+  └─────────────────────────────────────┘
+</pre>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Rust Performance</h3>
+          <p>Async Rust core with tokio runtime. Native speed for embedding, deduplication, and vector operations.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3>Multi-Language</h3>
+          <p>First-class Python, TypeScript, and Rust APIs. Zero-overhead bindings via PyO3 and napi-rs.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </div>
+          <h3>Pluggable Providers</h3>
+          <p>Swap LLMs, embeddings, and vector stores via config. One OpenAI-compatible client covers most providers.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <h3>Audit Trail</h3>
+          <p>Every ADD, UPDATE, and DELETE is recorded in a SQLite audit log with full history per memory.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <h3>Multi-User</h3>
+          <p>Memories are isolated per user_id. Each user has their own memory space with no cross-contamination.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+          </div>
+          <h3>Smart Deduplication</h3>
+          <p>LLM-driven deduplication decides whether to add, update, or skip based on existing memories.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Providers ───────────────────────────────────────────────── -->
+  <section id="providers" class="section">
+    <div class="container">
+      <h2>Supported Providers</h2>
+      <p class="section-sub">One OpenAI-compatible client covers most LLM and embedding providers out of the box.</p>
+
+      <div class="provider-grid">
+        <div class="provider-card">
+          <h3>LLMs</h3>
+          <div class="provider-list">
+            <div class="provider-item supported"><span class="check"></span>OpenAI</div>
+            <div class="provider-item supported"><span class="check"></span>Ollama</div>
+            <div class="provider-item supported"><span class="check"></span>vLLM</div>
+            <div class="provider-item supported"><span class="check"></span>Groq</div>
+            <div class="provider-item supported"><span class="check"></span>Together</div>
+            <div class="provider-item supported"><span class="check"></span>DeepSeek</div>
+            <div class="provider-item supported"><span class="check"></span>xAI (Grok)</div>
+            <div class="provider-item supported"><span class="check"></span>LM Studio</div>
+            <div class="provider-item supported"><span class="check"></span>Azure OpenAI</div>
+          </div>
+          <p class="provider-note">Any OpenAI-compatible API works</p>
+        </div>
+
+        <div class="provider-card">
+          <h3>Embeddings</h3>
+          <div class="provider-list">
+            <div class="provider-item supported"><span class="check"></span>OpenAI</div>
+            <div class="provider-item supported"><span class="check"></span>Ollama</div>
+            <div class="provider-item supported"><span class="check"></span>Together</div>
+            <div class="provider-item supported"><span class="check"></span>LM Studio</div>
+            <div class="provider-item supported"><span class="check"></span>Azure OpenAI</div>
+          </div>
+          <p class="provider-note">Any OpenAI-compatible API works</p>
+        </div>
+
+        <div class="provider-card">
+          <h3>Vector Stores</h3>
+          <div class="provider-list">
+            <div class="provider-item supported"><span class="check"></span>In-memory (FlatIndex)</div>
+            <div class="provider-item supported"><span class="check"></span>Upstash Vector</div>
+          </div>
+          <p class="provider-note">More coming soon</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Bindings ────────────────────────────────────────────────── -->
+  <section class="section section-alt">
+    <div class="container">
+      <h2>Language Bindings</h2>
+      <p class="section-sub">Use mem7 from your preferred language.</p>
+
+      <div class="bindings-grid">
+        <a href="https://pypi.org/project/mem7/" target="_blank" class="binding-card" rel="noopener">
+          <div class="binding-lang">Python</div>
+          <div class="binding-pkg">pip install mem7</div>
+          <div class="binding-status available">Available</div>
+        </a>
+        <a href="https://www.npmjs.com/package/@mem7ai/mem7" target="_blank" class="binding-card" rel="noopener">
+          <div class="binding-lang">TypeScript / Node.js</div>
+          <div class="binding-pkg">npm install @mem7ai/mem7</div>
+          <div class="binding-status available">Available</div>
+        </a>
+        <a href="https://crates.io/crates/mem7" target="_blank" class="binding-card" rel="noopener">
+          <div class="binding-lang">Rust</div>
+          <div class="binding-pkg">cargo add mem7</div>
+          <div class="binding-status available">Available</div>
+        </a>
+        <div class="binding-card planned">
+          <div class="binding-lang">Go</div>
+          <div class="binding-pkg">go get github.com/mem7ai/mem7-go</div>
+          <div class="binding-status">Planned</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <span class="logo-mark">m7</span>
+        <span>mem7 &mdash; Apache-2.0</span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/mem7ai/mem7" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://pypi.org/project/mem7/" target="_blank" rel="noopener">PyPI</a>
+        <a href="https://www.npmjs.com/package/@mem7ai/mem7" target="_blank" rel="noopener">npm</a>
+        <a href="https://crates.io/crates/mem7" target="_blank" rel="noopener">crates.io</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
