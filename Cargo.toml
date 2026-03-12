@@ -15,7 +15,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license = "Apache-2.0"
 rust-version = "1.85"
@@ -25,16 +25,16 @@ description = "LLM-powered long-term memory engine — Rust core with Python bin
 
 [workspace.dependencies]
 # Internal crates
-mem7-error = { path = "src/common/error", version = "0.1.3" }
-mem7-config = { path = "src/common/config", version = "0.1.3" }
-mem7-core = { path = "src/mem7-core", version = "0.1.3" }
-mem7-llm = { path = "src/mem7-llm", version = "0.1.3" }
-mem7-embedding = { path = "src/mem7-embedding", version = "0.1.3" }
-mem7-vector = { path = "src/mem7-vector", version = "0.1.3" }
-mem7-history = { path = "src/mem7-history", version = "0.1.3" }
-mem7-dedup = { path = "src/mem7-dedup", version = "0.1.3" }
-mem7-store = { path = "src/mem7-store", version = "0.1.3" }
-mem7 = { path = "src/mem7", version = "0.1.3" }
+mem7-error = { path = "src/common/error", version = "0.1.4" }
+mem7-config = { path = "src/common/config", version = "0.1.4" }
+mem7-core = { path = "src/mem7-core", version = "0.1.4" }
+mem7-llm = { path = "src/mem7-llm", version = "0.1.4" }
+mem7-embedding = { path = "src/mem7-embedding", version = "0.1.4" }
+mem7-vector = { path = "src/mem7-vector", version = "0.1.4" }
+mem7-history = { path = "src/mem7-history", version = "0.1.4" }
+mem7-dedup = { path = "src/mem7-dedup", version = "0.1.4" }
+mem7-store = { path = "src/mem7-store", version = "0.1.4" }
+mem7 = { path = "src/mem7", version = "0.1.4" }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
