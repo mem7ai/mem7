@@ -116,6 +116,7 @@ jobs:
       run:
         working-directory: src/bindings/mem7-node
     permissions:
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v6
