@@ -1,0 +1,18 @@
+[package]
+name = "mem7-llm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "LLM client abstraction for the mem7 memory engine"
+
+[dependencies]
+mem7-error.workspace = true
+mem7-config.workspace = true
+mem7-core.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true

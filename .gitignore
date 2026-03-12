@@ -1,0 +1,16 @@
+/target
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+*.so
+*.dylib
+*.dll
+.env
+.ipynb_checkpoints/
+*.db
+*.dSYM
+*.dSYM/

@@ -1,0 +1,14 @@
+[package]
+name = "mem7-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core types and ID generation for the mem7 memory engine"
+
+[dependencies]
+mem7-error.workspace = true
+mem7-config.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
