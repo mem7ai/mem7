@@ -130,7 +130,7 @@ jobs:
         with:
           pattern: node-*
           merge-multiple: true
-          path: src/bindings/mem7-node
+          path: src/bindings/mem7-node/artifacts
       - name: Move artifacts and publish
         run: |
           npx napi create-npm-dirs
