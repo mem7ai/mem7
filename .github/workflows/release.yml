@@ -131,11 +131,18 @@ jobs:
           pattern: node-*
           merge-multiple: true
           path: src/bindings/mem7-node/artifacts
-      - name: Move artifacts and publish
+      - name: Prepare and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npx napi create-npm-dirs
           npx napi artifacts
-          npm publish --access public --provenance
+          for dir in npm/*/; do
+            if [ -d "$dir" ]; then
+              npm publish "$dir" --access public || true
+            fi
+          done
+          npm publish --access public --ignore-scripts
 
   # ── Publish Rust crates to crates.io ───────────────────────────────
   publish-crates:
