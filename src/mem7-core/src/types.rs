@@ -62,16 +62,28 @@ pub struct MemoryActionResult {
     pub new_value: Option<String>,
 }
 
+/// A graph relation (subject-predicate-object triple).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphRelation {
+    pub source: String,
+    pub relationship: String,
+    pub destination: String,
+}
+
 /// Aggregated result of a full add() call.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddResult {
     pub results: Vec<MemoryActionResult>,
+    #[serde(default)]
+    pub relations: Vec<GraphRelation>,
 }
 
 /// Result of a search() call.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub memories: Vec<MemoryItem>,
+    #[serde(default)]
+    pub relations: Vec<GraphRelation>,
 }
 
 /// Filter criteria for querying memories.

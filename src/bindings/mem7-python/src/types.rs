@@ -1,4 +1,6 @@
-use mem7_core::{AddResult, MemoryActionResult, MemoryEvent, MemoryItem, SearchResult};
+use mem7_core::{
+    AddResult, GraphRelation, MemoryActionResult, MemoryEvent, MemoryItem, SearchResult,
+};
 use mem7_error::Mem7Error;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -78,14 +80,47 @@ impl From<MemoryActionResult> for PyMemoryActionResult {
 
 #[pyclass(get_all, from_py_object)]
 #[derive(Clone)]
+pub struct PyGraphRelation {
+    pub source: String,
+    pub relationship: String,
+    pub destination: String,
+}
+
+#[pymethods]
+impl PyGraphRelation {
+    fn __repr__(&self) -> String {
+        format!(
+            "GraphRelation({} -[{}]-> {})",
+            self.source, self.relationship, self.destination
+        )
+    }
+}
+
+impl From<GraphRelation> for PyGraphRelation {
+    fn from(r: GraphRelation) -> Self {
+        Self {
+            source: r.source,
+            relationship: r.relationship,
+            destination: r.destination,
+        }
+    }
+}
+
+#[pyclass(get_all, from_py_object)]
+#[derive(Clone)]
 pub struct PyAddResult {
     pub results: Vec<PyMemoryActionResult>,
+    pub relations: Vec<PyGraphRelation>,
 }
 
 #[pymethods]
 impl PyAddResult {
     fn __repr__(&self) -> String {
-        format!("AddResult(count={})", self.results.len())
+        format!(
+            "AddResult(count={}, relations={})",
+            self.results.len(),
+            self.relations.len()
+        )
     }
 }
 
@@ -93,6 +128,7 @@ impl From<AddResult> for PyAddResult {
     fn from(r: AddResult) -> Self {
         Self {
             results: r.results.into_iter().map(Into::into).collect(),
+            relations: r.relations.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -101,12 +137,17 @@ impl From<AddResult> for PyAddResult {
 #[derive(Clone)]
 pub struct PySearchResult {
     pub memories: Vec<PyMemoryItem>,
+    pub relations: Vec<PyGraphRelation>,
 }
 
 #[pymethods]
 impl PySearchResult {
     fn __repr__(&self) -> String {
-        format!("SearchResult(count={})", self.memories.len())
+        format!(
+            "SearchResult(count={}, relations={})",
+            self.memories.len(),
+            self.relations.len()
+        )
     }
 }
 
@@ -114,6 +155,7 @@ impl From<SearchResult> for PySearchResult {
     fn from(r: SearchResult) -> Self {
         Self {
             memories: r.memories.into_iter().map(Into::into).collect(),
+            relations: r.relations.into_iter().map(Into::into).collect(),
         }
     }
 }

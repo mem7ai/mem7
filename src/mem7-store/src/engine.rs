@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use mem7_config::MemoryEngineConfig;
 use mem7_core::{
-    AddResult, ChatMessage, MemoryAction, MemoryActionResult, MemoryEvent, MemoryFilter,
-    MemoryItem, SearchResult, new_memory_id,
+    AddResult, ChatMessage, GraphRelation, MemoryAction, MemoryActionResult, MemoryEvent,
+    MemoryFilter, MemoryItem, SearchResult, new_memory_id,
 };
 use mem7_embedding::EmbeddingClient;
 use mem7_error::{Mem7Error, Result};
+use mem7_graph::GraphStore;
 use mem7_history::SqliteHistory;
 use mem7_llm::LlmClient;
 use mem7_reranker::{RerankDocument, RerankerClient};
@@ -23,6 +24,8 @@ pub struct MemoryEngine {
     vector_index: Arc<dyn VectorIndex>,
     history: Arc<SqliteHistory>,
     reranker: Option<Arc<dyn RerankerClient>>,
+    graph: Option<Arc<dyn GraphStore>>,
+    graph_llm: Option<Arc<dyn LlmClient>>,
     config: MemoryEngineConfig,
 }
 
@@ -38,7 +41,24 @@ impl MemoryEngine {
             .map(mem7_reranker::create_reranker)
             .transpose()?;
 
-        info!(reranker = reranker.is_some(), "MemoryEngine initialized");
+        let (graph, graph_llm) = if let Some(graph_cfg) = &config.graph {
+            let store = mem7_graph::create_graph_store(graph_cfg).await?;
+            let g_llm = graph_cfg
+                .llm
+                .as_ref()
+                .map(mem7_llm::create_llm)
+                .transpose()?
+                .unwrap_or_else(|| llm.clone());
+            (Some(store), Some(g_llm))
+        } else {
+            (None, None)
+        };
+
+        info!(
+            reranker = reranker.is_some(),
+            graph = graph.is_some(),
+            "MemoryEngine initialized"
+        );
 
         Ok(Self {
             llm,
@@ -46,6 +66,8 @@ impl MemoryEngine {
             vector_index,
             history,
             reranker,
+            graph,
+            graph_llm,
             config,
         })
     }
@@ -91,6 +113,7 @@ impl MemoryEngine {
         if texts.is_empty() {
             return Ok(AddResult {
                 results: Vec::new(),
+                relations: Vec::new(),
             });
         }
 
@@ -129,8 +152,27 @@ impl MemoryEngine {
             });
         }
 
+        // Graph extraction for raw add (runs in parallel if graph is enabled)
+        let relations = if self.graph.is_some() {
+            let conversation = texts.join("\n");
+            let filter = MemoryFilter {
+                user_id: user_id.map(String::from),
+                agent_id: agent_id.map(String::from),
+                run_id: run_id.map(String::from),
+                metadata: None,
+            };
+            self.add_graph(&conversation, &filter)
+                .await
+                .unwrap_or_else(|e| {
+                    warn!(error = %e, "graph extraction failed during raw add");
+                    Vec::new()
+                })
+        } else {
+            Vec::new()
+        };
+
         info!(count = results.len(), infer = false, "raw memories stored");
-        Ok(AddResult { results })
+        Ok(AddResult { results, relations })
     }
 
     /// Full LLM-powered pipeline: extract facts, deduplicate, store.
@@ -142,6 +184,58 @@ impl MemoryEngine {
         run_id: Option<&str>,
         metadata: Option<&serde_json::Value>,
     ) -> Result<AddResult> {
+        let conversation = messages
+            .iter()
+            .map(|m| format!("{}: {}", m.role, m.content))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let filter = MemoryFilter {
+            user_id: user_id.map(String::from),
+            agent_id: agent_id.map(String::from),
+            run_id: run_id.map(String::from),
+            metadata: None,
+        };
+
+        // Run vector path and graph path concurrently
+        let graph_enabled = self.graph.is_some();
+        let graph_future = async {
+            if graph_enabled {
+                self.add_graph(&conversation, &filter).await
+            } else {
+                Ok(Vec::new())
+            }
+        };
+
+        let vector_future =
+            self.add_vector_with_inference(messages, user_id, agent_id, run_id, metadata, &filter);
+
+        let (vector_result, graph_result) = tokio::join!(vector_future, graph_future);
+
+        let (results, _) = vector_result?;
+        let relations = graph_result.unwrap_or_else(|e| {
+            warn!(error = %e, "graph extraction failed");
+            Vec::new()
+        });
+
+        info!(
+            count = results.len(),
+            relations = relations.len(),
+            "memory operations completed"
+        );
+        Ok(AddResult { results, relations })
+    }
+
+    /// Vector-only inference pipeline, factored out for concurrent execution.
+    async fn add_vector_with_inference(
+        &self,
+        messages: &[ChatMessage],
+        user_id: Option<&str>,
+        agent_id: Option<&str>,
+        run_id: Option<&str>,
+        metadata: Option<&serde_json::Value>,
+        filter: &MemoryFilter,
+    ) -> Result<(Vec<MemoryActionResult>, ())> {
         let facts = pipeline::extract_facts(
             self.llm.as_ref(),
             messages,
@@ -150,9 +244,7 @@ impl MemoryEngine {
         .await?;
 
         if facts.is_empty() {
-            return Ok(AddResult {
-                results: Vec::new(),
-            });
+            return Ok((Vec::new(), ()));
         }
 
         debug!(count = facts.len(), "extracted facts");
@@ -160,19 +252,10 @@ impl MemoryEngine {
         let fact_texts: Vec<String> = facts.iter().map(|f| f.text.clone()).collect();
         let embeddings = self.embedder.embed(&fact_texts).await?;
 
-        let filter = MemoryFilter {
-            user_id: user_id.map(String::from),
-            agent_id: agent_id.map(String::from),
-            run_id: run_id.map(String::from),
-            metadata: None,
-        };
         let mut all_retrieved: Vec<(Uuid, String, f32)> = Vec::new();
 
         for embedding in &embeddings {
-            let results = self
-                .vector_index
-                .search(embedding, 5, Some(&filter))
-                .await?;
+            let results = self.vector_index.search(embedding, 5, Some(filter)).await?;
             for VectorSearchResult { id, score, payload } in results {
                 if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
                     all_retrieved.push((id, text.to_string(), score));
@@ -282,8 +365,52 @@ impl MemoryEngine {
             }
         }
 
-        info!(count = results.len(), "memory operations completed");
-        Ok(AddResult { results })
+        Ok((results, ()))
+    }
+
+    /// Extract entities and relations from conversation text and store them in the graph.
+    async fn add_graph(
+        &self,
+        conversation: &str,
+        filter: &MemoryFilter,
+    ) -> Result<Vec<GraphRelation>> {
+        let graph = self
+            .graph
+            .as_ref()
+            .ok_or_else(|| Mem7Error::Config("graph store not configured".into()))?;
+        let llm = self
+            .graph_llm
+            .as_ref()
+            .ok_or_else(|| Mem7Error::Config("graph LLM not configured".into()))?;
+
+        let custom_prompt = self
+            .config
+            .graph
+            .as_ref()
+            .and_then(|g| g.custom_prompt.as_deref());
+
+        let entities =
+            mem7_graph::extraction::extract_entities(llm.as_ref(), conversation, custom_prompt)
+                .await?;
+
+        debug!(count = entities.len(), "graph: extracted entities");
+
+        let relations =
+            mem7_graph::extraction::extract_relations(llm.as_ref(), conversation, &entities, None)
+                .await?;
+
+        debug!(count = relations.len(), "graph: extracted relations");
+
+        graph.add_relations(&relations, &entities, filter).await?;
+
+        Ok(relations
+            .into_iter()
+            .map(|r| GraphRelation {
+                source: r.source,
+                relationship: r.relationship,
+                destination: r.destination,
+            })
+            .collect())
     }
 
     /// Search memories by semantic similarity.
@@ -328,10 +455,34 @@ impl MemoryEngine {
             limit
         };
 
-        let results = self
+        // Run vector search and graph search concurrently
+        let graph_filter = MemoryFilter {
+            user_id: user_id.map(String::from),
+            agent_id: agent_id.map(String::from),
+            run_id: run_id.map(String::from),
+            metadata: None,
+        };
+
+        let vector_future = self
             .vector_index
-            .search(&query_vec, fetch_limit, Some(&filter))
-            .await?;
+            .search(&query_vec, fetch_limit, Some(&filter));
+
+        let graph_future = async {
+            if let Some(graph) = &self.graph {
+                graph
+                    .search(query, &graph_filter, limit)
+                    .await
+                    .unwrap_or_else(|e| {
+                        warn!(error = %e, "graph search failed");
+                        Vec::new()
+                    })
+            } else {
+                Vec::new()
+            }
+        };
+
+        let (results, graph_results) = tokio::join!(vector_future, graph_future);
+        let results = results?;
 
         let memories = if should_rerank && !results.is_empty() {
             let reranker = self.reranker.as_ref().unwrap();
@@ -379,7 +530,19 @@ impl MemoryEngine {
                 .collect()
         };
 
-        Ok(SearchResult { memories })
+        let relations = graph_results
+            .into_iter()
+            .map(|r| GraphRelation {
+                source: r.source,
+                relationship: r.relationship,
+                destination: r.destination,
+            })
+            .collect();
+
+        Ok(SearchResult {
+            memories,
+            relations,
+        })
     }
 
     /// Get a single memory by ID.
@@ -489,6 +652,10 @@ impl MemoryEngine {
             self.vector_index.delete(&id).await?;
         }
 
+        if let Some(graph) = &self.graph {
+            graph.delete_all(&filter).await?;
+        }
+
         Ok(())
     }
 
@@ -497,10 +664,13 @@ impl MemoryEngine {
         self.history.get_history(memory_id).await
     }
 
-    /// Reset all data (vector index + history).
+    /// Reset all data (vector index + history + graph).
     pub async fn reset(&self) -> Result<()> {
         self.vector_index.reset().await?;
         self.history.reset().await?;
+        if let Some(graph) = &self.graph {
+            graph.reset().await?;
+        }
         info!("MemoryEngine reset");
         Ok(())
     }

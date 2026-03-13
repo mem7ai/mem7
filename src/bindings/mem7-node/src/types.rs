@@ -1,5 +1,6 @@
 use mem7_core::{
-    AddResult, MemoryAction, MemoryActionResult, MemoryEvent, MemoryItem, SearchResult,
+    AddResult, GraphRelation, MemoryAction, MemoryActionResult, MemoryEvent, MemoryItem,
+    SearchResult,
 };
 use mem7_error::Mem7Error;
 use napi::bindgen_prelude::*;
@@ -87,14 +88,33 @@ impl From<MemoryActionResult> for JsMemoryActionResult {
 }
 
 #[napi(object)]
+pub struct JsGraphRelation {
+    pub source: String,
+    pub relationship: String,
+    pub destination: String,
+}
+
+impl From<GraphRelation> for JsGraphRelation {
+    fn from(r: GraphRelation) -> Self {
+        Self {
+            source: r.source,
+            relationship: r.relationship,
+            destination: r.destination,
+        }
+    }
+}
+
+#[napi(object)]
 pub struct JsAddResult {
     pub results: Vec<JsMemoryActionResult>,
+    pub relations: Vec<JsGraphRelation>,
 }
 
 impl From<AddResult> for JsAddResult {
     fn from(r: AddResult) -> Self {
         Self {
             results: r.results.into_iter().map(Into::into).collect(),
+            relations: r.relations.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -102,12 +122,14 @@ impl From<AddResult> for JsAddResult {
 #[napi(object)]
 pub struct JsSearchResult {
     pub memories: Vec<JsMemoryItem>,
+    pub relations: Vec<JsGraphRelation>,
 }
 
 impl From<SearchResult> for JsSearchResult {
     fn from(r: SearchResult) -> Self {
         Self {
             memories: r.memories.into_iter().map(Into::into).collect(),
+            relations: r.relations.into_iter().map(Into::into).collect(),
         }
     }
 }

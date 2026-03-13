@@ -22,6 +22,7 @@ Rust Core (tokio async runtime)
     ├── mem7-llm        — OpenAI-compatible LLM client
     ├── mem7-embedding  — OpenAI-compatible embedding client
     ├── mem7-vector     — Vector index (FlatIndex / Upstash)
+    ├── mem7-graph      — Graph store (FlatGraph / Kuzu / Neo4j)
     ├── mem7-history    — SQLite audit trail
     ├── mem7-dedup      — LLM-driven memory deduplication
     ├── mem7-reranker   — Search reranking (Cohere / LLM-based)
@@ -174,6 +175,16 @@ mem7 uses a single **OpenAI-compatible client** for both LLM and Embedding, whic
 | Jina AI | :white_check_mark: | :x: | Planned |
 | Cross-encoder | :white_check_mark: | :x: | Planned |
 
+### Graph Stores
+
+| Provider | mem0 | mem7 | Notes |
+|----------|:----:|:----:|-------|
+| In-memory (FlatGraph) | — | :white_check_mark: | Built-in, good for dev/testing |
+| Kuzu (embedded) | :white_check_mark: | :white_check_mark: | Cypher-based, no server needed (feature flag `kuzu`) |
+| Neo4j | :white_check_mark: | :white_check_mark: | Production-grade, Bolt protocol |
+| Memgraph | :white_check_mark: | :x: | Planned |
+| Amazon Neptune | :white_check_mark: | :x: | Planned |
+
 ### Language Bindings
 
 | Language | Status |
@@ -202,6 +213,58 @@ VectorConfig(
     dims=1024,
     upstash_url="https://your-index.upstash.io",
     upstash_token="your-token",
+)
+```
+
+## Graph Memory (Dual-Path Recall)
+
+When `graph` is configured, mem7 runs **dual-path recall**: vector search and graph search execute concurrently via `tokio::join!`, returning both factual memories and entity relations.
+
+On `add()`, the engine extracts entities and relations from conversations using LLM (JSON mode) and stores them in the graph alongside the vector memories.
+
+**FlatGraph** (in-memory, for development):
+
+```python
+from mem7 import Memory
+from mem7.config import MemoryConfig, LlmConfig, EmbeddingConfig, GraphConfig
+
+config = MemoryConfig(
+    llm=LlmConfig(base_url="http://localhost:11434/v1", api_key="ollama", model="qwen2.5:7b"),
+    embedding=EmbeddingConfig(base_url="http://localhost:11434/v1", api_key="ollama", model="mxbai-embed-large", dims=1024),
+    graph=GraphConfig(provider="flat"),
+)
+
+m = Memory(config=config)
+m.add("I love playing tennis and my coach is Sarah.", user_id="alice")
+
+results = m.search("What sports does Alice play?", user_id="alice")
+# results["memories"]   -> vector search results
+# results["relations"]  -> graph relations (e.g. USER -[loves_playing]-> tennis)
+```
+
+**Neo4j** (production):
+
+```python
+GraphConfig(
+    provider="neo4j",
+    neo4j_url="bolt://localhost:7687",
+    neo4j_username="neo4j",
+    neo4j_password="password",
+)
+```
+
+**Kuzu** (embedded, requires `kuzu` feature flag):
+
+```python
+GraphConfig(provider="kuzu", kuzu_db_path="./my_graph.kuzu")
+```
+
+The graph LLM can be configured separately (e.g. use a cheaper model for extraction):
+
+```python
+GraphConfig(
+    provider="flat",
+    llm=LlmConfig(base_url="http://localhost:11434/v1", api_key="ollama", model="qwen2.5:3b"),
 )
 ```
 

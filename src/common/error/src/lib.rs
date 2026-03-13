@@ -38,6 +38,9 @@ pub enum Mem7Error {
     #[error("Reranker error: {0}")]
     Reranker(String),
 
+    #[error("Graph store error: {0}")]
+    Graph(String),
+
     #[error("Not found: {0}")]
     NotFound(String),
 

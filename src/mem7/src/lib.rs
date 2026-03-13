@@ -24,13 +24,14 @@
 
 // ── Core types ───────────────────────────────────────────────────────
 pub use mem7_core::{
-    AddResult, ChatMessage, Fact, MemoryAction, MemoryActionResult, MemoryEvent, MemoryFilter,
-    MemoryItem, SearchResult, new_memory_id,
+    AddResult, ChatMessage, Fact, GraphRelation, MemoryAction, MemoryActionResult, MemoryEvent,
+    MemoryFilter, MemoryItem, SearchResult, new_memory_id,
 };
 
 // ── Configuration ────────────────────────────────────────────────────
 pub use mem7_config::{
-    EmbeddingConfig, HistoryConfig, LlmConfig, MemoryEngineConfig, RerankerConfig, VectorConfig,
+    EmbeddingConfig, GraphConfig, HistoryConfig, LlmConfig, MemoryEngineConfig, RerankerConfig,
+    VectorConfig,
 };
 
 // ── Error handling ───────────────────────────────────────────────────
@@ -67,6 +68,16 @@ pub mod history {
 pub mod reranker {
     pub use mem7_reranker::{
         CohereReranker, LlmReranker, RerankDocument, RerankResult, RerankerClient,
+    };
+}
+
+/// Graph store trait and built-in implementations (FlatGraph, Kuzu, Neo4j).
+pub mod graph {
+    #[cfg(feature = "kuzu")]
+    pub use mem7_graph::KuzuGraphStore;
+    pub use mem7_graph::{
+        FlatGraph, GraphStore, Neo4jGraphStore,
+        types::{Entity, GraphSearchResult, Relation},
     };
 }
 

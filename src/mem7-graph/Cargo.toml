@@ -1,0 +1,27 @@
+[package]
+name = "mem7-graph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Graph store trait and providers for mem7"
+
+[features]
+default = []
+kuzu = ["dep:kuzu"]
+
+[dependencies]
+mem7-error = { workspace = true }
+mem7-config = { workspace = true }
+mem7-core = { workspace = true }
+mem7-llm = { workspace = true }
+
+async-trait = { workspace = true }
+kuzu = { version = "0.11", optional = true }
+neo4rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }

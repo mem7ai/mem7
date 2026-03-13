@@ -32,12 +32,26 @@ def _action_result_to_dict(r) -> dict:
     }
 
 
+def _relation_to_dict(r) -> dict:
+    return {
+        "source": r.source,
+        "relationship": r.relationship,
+        "destination": r.destination,
+    }
+
+
 def _add_result_to_dict(result) -> dict:
-    return {"results": [_action_result_to_dict(r) for r in result.results]}
+    return {
+        "results": [_action_result_to_dict(r) for r in result.results],
+        "relations": [_relation_to_dict(r) for r in result.relations],
+    }
 
 
 def _search_result_to_dict(result) -> dict:
-    return {"memories": [_memory_item_to_dict(m) for m in result.memories]}
+    return {
+        "memories": [_memory_item_to_dict(m) for m in result.memories],
+        "relations": [_relation_to_dict(r) for r in result.relations],
+    }
 
 
 def _event_to_dict(e) -> dict:

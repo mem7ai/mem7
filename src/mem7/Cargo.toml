@@ -6,6 +6,10 @@ license.workspace = true
 repository.workspace = true
 description = "LLM-powered long-term memory engine — Rust core with Python bindings"
 
+[features]
+default = []
+kuzu = ["mem7-graph/kuzu"]
+
 [dependencies]
 mem7-error.workspace = true
 mem7-config.workspace = true
@@ -16,5 +20,6 @@ mem7-vector.workspace = true
 mem7-history.workspace = true
 mem7-dedup.workspace = true
 mem7-reranker.workspace = true
+mem7-graph.workspace = true
 mem7-store.workspace = true
 tokio.workspace = true

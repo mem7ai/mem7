@@ -145,6 +145,42 @@ impl Default for RerankerConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphConfig {
+    #[serde(default = "default_graph_provider")]
+    pub provider: String,
+    pub kuzu_db_path: Option<String>,
+    pub neo4j_url: Option<String>,
+    pub neo4j_username: Option<String>,
+    pub neo4j_password: Option<String>,
+    pub neo4j_database: Option<String>,
+    pub custom_prompt: Option<String>,
+    pub llm: Option<LlmConfig>,
+}
+
+fn default_graph_provider() -> String {
+    "flat".into()
+}
+
+fn default_kuzu_db_path() -> String {
+    "mem7_graph.kuzu".into()
+}
+
+impl Default for GraphConfig {
+    fn default() -> Self {
+        Self {
+            provider: default_graph_provider(),
+            kuzu_db_path: Some(default_kuzu_db_path()),
+            neo4j_url: None,
+            neo4j_username: None,
+            neo4j_password: None,
+            neo4j_database: None,
+            custom_prompt: None,
+            llm: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryEngineConfig {
     #[serde(default)]
@@ -156,6 +192,7 @@ pub struct MemoryEngineConfig {
     #[serde(default)]
     pub history: HistoryConfig,
     pub reranker: Option<RerankerConfig>,
+    pub graph: Option<GraphConfig>,
     pub custom_fact_extraction_prompt: Option<String>,
     pub custom_update_memory_prompt: Option<String>,
 }

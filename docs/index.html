@@ -40,7 +40,7 @@
       <div class="badge">Open Source &middot; Apache-2.0</div>
       <p class="hero-sub">
         Rust core with Python, TypeScript &amp; Rust bindings.<br>
-        Extracts facts from conversations, deduplicates, and stores them in vector databases with full audit history.
+        Extracts facts and entity relations from conversations, deduplicates, and stores them in vector + graph databases with full audit history.
       </p>
       <div class="install-tabs">
         <div class="install-tab-bar">
@@ -228,6 +228,7 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
             <div class="arch-mod">mem7-history</div>
             <div class="arch-mod">mem7-dedup</div>
             <div class="arch-mod">mem7-reranker</div>
+            <div class="arch-mod">mem7-graph</div>
             <div class="arch-mod">mem7-store</div>
           </div>
         </div>
@@ -275,6 +276,13 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
           </div>
           <h3>Smart Deduplication</h3>
           <p>LLM-driven deduplication decides whether to add, update, or skip based on existing memories.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><line x1="8.5" y1="7.5" x2="15.5" y2="7.5"/><line x1="7.5" y1="8.5" x2="10.5" y2="15.5"/><line x1="16.5" y1="8.5" x2="13.5" y2="15.5"/></svg>
+          </div>
+          <h3>Graph Memory</h3>
+          <p>Optional dual-path recall: vector search + graph search run concurrently. Extracts entities &amp; relations via LLM.</p>
         </div>
       </div>
     </div>
@@ -339,6 +347,18 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
             <div class="provider-item planned"><span class="planned-dot"></span>FAISS<span class="planned-tag">planned</span></div>
             <div class="provider-item planned"><span class="planned-dot"></span>MongoDB<span class="planned-tag">planned</span></div>
           </div>
+        </div>
+
+        <div class="provider-card">
+          <h3>Graph Stores</h3>
+          <div class="provider-list">
+            <div class="provider-item supported"><span class="check"></span>In-memory (FlatGraph)</div>
+            <div class="provider-item supported"><span class="check"></span>Kuzu (embedded)</div>
+            <div class="provider-item supported"><span class="check"></span>Neo4j</div>
+            <div class="provider-item planned"><span class="planned-dot"></span>Memgraph<span class="planned-tag">planned</span></div>
+            <div class="provider-item planned"><span class="planned-dot"></span>Amazon Neptune<span class="planned-tag">planned</span></div>
+          </div>
+          <p class="provider-note">Optional dual-path recall (vector + graph)</p>
         </div>
 
         <div class="provider-card">
