@@ -9,8 +9,9 @@ use mem7_embedding::EmbeddingClient;
 use mem7_error::{Mem7Error, Result};
 use mem7_history::SqliteHistory;
 use mem7_llm::LlmClient;
+use mem7_reranker::{RerankDocument, RerankerClient};
 use mem7_vector::{VectorIndex, VectorSearchResult};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::pipeline;
@@ -21,6 +22,7 @@ pub struct MemoryEngine {
     embedder: Arc<dyn EmbeddingClient>,
     vector_index: Arc<dyn VectorIndex>,
     history: Arc<SqliteHistory>,
+    reranker: Option<Arc<dyn RerankerClient>>,
     config: MemoryEngineConfig,
 }
 
@@ -30,14 +32,20 @@ impl MemoryEngine {
         let embedder = mem7_embedding::create_embedding(&config.embedding)?;
         let vector_index = mem7_vector::create_vector_index(&config.vector)?;
         let history = Arc::new(SqliteHistory::new(&config.history.db_path).await?);
+        let reranker = config
+            .reranker
+            .as_ref()
+            .map(mem7_reranker::create_reranker)
+            .transpose()?;
 
-        info!("MemoryEngine initialized");
+        info!(reranker = reranker.is_some(), "MemoryEngine initialized");
 
         Ok(Self {
             llm,
             embedder,
             vector_index,
             history,
+            reranker,
             config,
         })
     }
@@ -282,6 +290,11 @@ impl MemoryEngine {
     ///
     /// `filters` is an optional JSON object evaluated against `payload.metadata`
     /// using the filter DSL (simple equality, operators, AND/OR/NOT).
+    ///
+    /// When a reranker is configured and `rerank` is `true`, the engine
+    /// over-fetches candidates by `top_k_multiplier` and then reranks them
+    /// down to `limit`.
+    #[allow(clippy::too_many_arguments)]
     pub async fn search(
         &self,
         query: &str,
@@ -290,6 +303,7 @@ impl MemoryEngine {
         run_id: Option<&str>,
         limit: usize,
         filters: Option<&serde_json::Value>,
+        rerank: bool,
     ) -> Result<SearchResult> {
         let vecs = self.embedder.embed(&[query.to_string()]).await?;
         let query_vec = vecs.into_iter().next().unwrap_or_default();
@@ -301,15 +315,69 @@ impl MemoryEngine {
             metadata: filters.cloned(),
         };
 
+        let should_rerank = rerank && self.reranker.is_some();
+        let fetch_limit = if should_rerank {
+            let multiplier = self
+                .config
+                .reranker
+                .as_ref()
+                .map(|r| r.top_k_multiplier)
+                .unwrap_or(3);
+            limit * multiplier
+        } else {
+            limit
+        };
+
         let results = self
             .vector_index
-            .search(&query_vec, limit, Some(&filter))
+            .search(&query_vec, fetch_limit, Some(&filter))
             .await?;
 
-        let memories = results
-            .into_iter()
-            .map(|r| payload_to_memory_item(r.id, &r.payload, Some(r.score)))
-            .collect();
+        let memories = if should_rerank && !results.is_empty() {
+            let reranker = self.reranker.as_ref().unwrap();
+            let docs: Vec<RerankDocument> = results
+                .iter()
+                .filter_map(|r| {
+                    r.payload
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .map(|text| RerankDocument {
+                            id: r.id,
+                            text: text.to_string(),
+                            score: r.score,
+                            payload: r.payload.clone(),
+                        })
+                })
+                .collect();
+
+            match reranker.rerank(query, &docs, limit).await {
+                Ok(reranked) => {
+                    debug!(count = reranked.len(), "reranked results");
+                    reranked
+                        .into_iter()
+                        .map(|r| {
+                            let mut item =
+                                payload_to_memory_item(r.id, &r.payload, Some(r.rerank_score));
+                            item.score = Some(r.rerank_score);
+                            item
+                        })
+                        .collect()
+                }
+                Err(e) => {
+                    warn!(error = %e, "reranking failed, using original results");
+                    results
+                        .into_iter()
+                        .take(limit)
+                        .map(|r| payload_to_memory_item(r.id, &r.payload, Some(r.score)))
+                        .collect()
+                }
+            }
+        } else {
+            results
+                .into_iter()
+                .map(|r| payload_to_memory_item(r.id, &r.payload, Some(r.score)))
+                .collect()
+        };
 
         Ok(SearchResult { memories })
     }

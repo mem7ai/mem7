@@ -91,11 +91,12 @@ class Memory:
         run_id: Optional[str] = None,
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
+        rerank: bool = True,
     ) -> dict:
         filters_json = _json.dumps(filters) if filters is not None else None
         result = self._engine.search(
             query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-            filters=filters_json,
+            filters=filters_json, rerank=rerank,
         )
         return _search_result_to_dict(result)
 
@@ -182,6 +183,7 @@ class AsyncMemory:
         run_id: Optional[str] = None,
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
+        rerank: bool = True,
     ) -> dict:
         filters_json = _json.dumps(filters) if filters is not None else None
         loop = asyncio.get_event_loop()
@@ -189,7 +191,7 @@ class AsyncMemory:
             None,
             lambda: self._engine.search(
                 query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-                filters=filters_json,
+                filters=filters_json, rerank=rerank,
             ),
         )
         return _search_result_to_dict(result)

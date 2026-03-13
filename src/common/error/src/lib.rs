@@ -35,6 +35,9 @@ pub enum Mem7Error {
     #[error("SQLite error: {0}")]
     Sqlite(String),
 
+    #[error("Reranker error: {0}")]
+    Reranker(String),
+
     #[error("Not found: {0}")]
     NotFound(String),
 

@@ -227,6 +227,7 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
             <div class="arch-mod">mem7-vector</div>
             <div class="arch-mod">mem7-history</div>
             <div class="arch-mod">mem7-dedup</div>
+            <div class="arch-mod">mem7-reranker</div>
             <div class="arch-mod">mem7-store</div>
           </div>
         </div>
@@ -338,6 +339,18 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
             <div class="provider-item planned"><span class="planned-dot"></span>FAISS<span class="planned-tag">planned</span></div>
             <div class="provider-item planned"><span class="planned-dot"></span>MongoDB<span class="planned-tag">planned</span></div>
           </div>
+        </div>
+
+        <div class="provider-card">
+          <h3>Rerankers</h3>
+          <div class="provider-list">
+            <div class="provider-item supported"><span class="check"></span>Cohere</div>
+            <div class="provider-item supported"><span class="check"></span>LLM-based</div>
+            <div class="provider-item planned"><span class="planned-dot"></span>Jina AI<span class="planned-tag">planned</span></div>
+            <div class="provider-item planned"><span class="planned-dot"></span>Voyage AI<span class="planned-tag">planned</span></div>
+            <div class="provider-item planned"><span class="planned-dot"></span>Cross-encoder<span class="planned-tag">planned</span></div>
+          </div>
+          <p class="provider-note">Optional post-search reranking</p>
         </div>
       </div>
     </div>

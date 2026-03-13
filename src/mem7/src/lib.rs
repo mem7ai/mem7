@@ -30,7 +30,7 @@ pub use mem7_core::{
 
 // ── Configuration ────────────────────────────────────────────────────
 pub use mem7_config::{
-    EmbeddingConfig, HistoryConfig, LlmConfig, MemoryEngineConfig, VectorConfig,
+    EmbeddingConfig, HistoryConfig, LlmConfig, MemoryEngineConfig, RerankerConfig, VectorConfig,
 };
 
 // ── Error handling ───────────────────────────────────────────────────
@@ -61,6 +61,13 @@ pub mod vector {
 /// SQLite-backed audit history.
 pub mod history {
     pub use mem7_history::SqliteHistory;
+}
+
+/// Reranker trait and built-in implementations (Cohere, LLM-based).
+pub mod reranker {
+    pub use mem7_reranker::{
+        CohereReranker, LlmReranker, RerankDocument, RerankResult, RerankerClient,
+    };
 }
 
 /// Memory deduplication utilities.

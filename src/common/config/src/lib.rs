@@ -119,6 +119,32 @@ impl Default for HistoryConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RerankerConfig {
+    pub provider: String,
+    pub model: Option<String>,
+    pub api_key: Option<String>,
+    pub base_url: Option<String>,
+    #[serde(default = "default_top_k_multiplier")]
+    pub top_k_multiplier: usize,
+}
+
+fn default_top_k_multiplier() -> usize {
+    3
+}
+
+impl Default for RerankerConfig {
+    fn default() -> Self {
+        Self {
+            provider: "cohere".into(),
+            model: None,
+            api_key: None,
+            base_url: None,
+            top_k_multiplier: default_top_k_multiplier(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryEngineConfig {
     #[serde(default)]
@@ -129,6 +155,7 @@ pub struct MemoryEngineConfig {
     pub vector: VectorConfig,
     #[serde(default)]
     pub history: HistoryConfig,
+    pub reranker: Option<RerankerConfig>,
     pub custom_fact_extraction_prompt: Option<String>,
     pub custom_update_memory_prompt: Option<String>,
 }

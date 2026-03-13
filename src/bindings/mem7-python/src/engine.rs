@@ -74,7 +74,8 @@ impl PyMemoryEngine {
         Ok(result.into())
     }
 
-    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None))]
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None, rerank=None))]
     fn search(
         &self,
         query: &str,
@@ -83,6 +84,7 @@ impl PyMemoryEngine {
         run_id: Option<String>,
         limit: usize,
         filters: Option<String>,
+        rerank: Option<bool>,
     ) -> PyResult<PySearchResult> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -98,6 +100,7 @@ impl PyMemoryEngine {
                 run_id.as_deref(),
                 limit,
                 filters_val.as_ref(),
+                rerank.unwrap_or(true),
             ))
             .map_err(to_py_err)?;
 

@@ -1,0 +1,21 @@
+[package]
+name = "mem7-reranker"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Reranker trait and providers for mem7"
+
+[dependencies]
+mem7-error = { workspace = true }
+mem7-config = { workspace = true }
+mem7-llm = { workspace = true }
+
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
