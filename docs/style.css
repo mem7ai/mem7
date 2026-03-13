@@ -584,6 +584,112 @@ a:hover { opacity: 0.8; }
 
 .footer-links a:hover { color: var(--text); }
 
+/* ── Dual-Path Recall ────────────────────────────────────────── */
+.dual-path-section {
+  margin-top: 48px;
+  text-align: center;
+}
+
+.dual-path-section h3 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.dual-path-diagram {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+.dp-flow {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px 20px;
+  flex: 1;
+  max-width: 420px;
+  min-width: 300px;
+}
+
+.dp-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  display: inline-block;
+}
+
+.dp-arrow-down {
+  width: 2px;
+  height: 20px;
+  background: var(--accent);
+  margin: 0 auto;
+  position: relative;
+}
+
+.dp-arrow-down::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: -4px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--accent);
+}
+
+.dp-branches {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.dp-branch {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dp-branch-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+}
+
+.dp-step {
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.dp-result {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.dp-join-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .features-grid, .provider-grid {
@@ -592,6 +698,11 @@ a:hover { opacity: 0.8; }
 
   .bindings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dual-path-diagram {
+    flex-direction: column;
+    align-items: center;
   }
 
   .hero { padding: 120px 0 60px; }

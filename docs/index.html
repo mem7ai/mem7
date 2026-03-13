@@ -285,6 +285,61 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
           <p>Optional dual-path recall: vector search + graph search run concurrently. Extracts entities &amp; relations via LLM.</p>
         </div>
       </div>
+
+      <!-- Dual-Path Recall Diagram -->
+      <div class="dual-path-section">
+        <h3>Dual-Path Recall</h3>
+        <p class="section-sub">When graph is enabled, <code>add()</code> and <code>search()</code> run both paths concurrently via <code>tokio::join!</code></p>
+        <div class="dual-path-diagram">
+          <div class="dp-flow dp-flow-add">
+            <div class="dp-label">add(messages)</div>
+            <div class="dp-arrow-down"></div>
+            <div class="dp-branches">
+              <div class="dp-branch">
+                <div class="dp-branch-label">Vector Path</div>
+                <div class="dp-step">LLM: extract facts</div>
+                <div class="dp-step">Embedding: vectorize</div>
+                <div class="dp-step">Dedup &amp; store</div>
+                <div class="dp-result">memories</div>
+              </div>
+              <div class="dp-join-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 8A6 6 0 006 8"/><path d="M6 16a6 6 0 0012 0"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+              </div>
+              <div class="dp-branch">
+                <div class="dp-branch-label">Graph Path</div>
+                <div class="dp-step">LLM: extract entities</div>
+                <div class="dp-step">LLM: extract relations</div>
+                <div class="dp-step">Store in graph DB</div>
+                <div class="dp-result">relations</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dp-flow dp-flow-search">
+            <div class="dp-label">search(query)</div>
+            <div class="dp-arrow-down"></div>
+            <div class="dp-branches">
+              <div class="dp-branch">
+                <div class="dp-branch-label">Vector Search</div>
+                <div class="dp-step">Embed query</div>
+                <div class="dp-step">Similarity search</div>
+                <div class="dp-step">Optional rerank</div>
+                <div class="dp-result">memories[]</div>
+              </div>
+              <div class="dp-join-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 8A6 6 0 006 8"/><path d="M6 16a6 6 0 0012 0"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+              </div>
+              <div class="dp-branch">
+                <div class="dp-branch-label">Graph Search</div>
+                <div class="dp-step">Match entities</div>
+                <div class="dp-step">Traverse relations</div>
+                <div class="dp-step">Return triples</div>
+                <div class="dp-result">relations[]</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
