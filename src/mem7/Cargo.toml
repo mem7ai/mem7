@@ -9,6 +9,7 @@ description = "LLM-powered long-term memory engine — Rust core with Python bin
 [features]
 default = []
 kuzu = ["mem7-graph/kuzu"]
+otel = ["dep:mem7-telemetry"]
 
 [dependencies]
 mem7-error.workspace = true
@@ -21,5 +22,6 @@ mem7-history.workspace = true
 mem7-dedup.workspace = true
 mem7-reranker.workspace = true
 mem7-graph.workspace = true
+mem7-telemetry = { workspace = true, optional = true }
 mem7-store.workspace = true
 tokio.workspace = true

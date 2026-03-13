@@ -181,6 +181,31 @@ impl Default for GraphConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TelemetryConfig {
+    #[serde(default = "default_otlp_endpoint")]
+    pub otlp_endpoint: String,
+    #[serde(default = "default_service_name")]
+    pub service_name: String,
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://localhost:4317".into()
+}
+
+fn default_service_name() -> String {
+    "mem7".into()
+}
+
+impl Default for TelemetryConfig {
+    fn default() -> Self {
+        Self {
+            otlp_endpoint: default_otlp_endpoint(),
+            service_name: default_service_name(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryEngineConfig {
     #[serde(default)]
@@ -193,6 +218,7 @@ pub struct MemoryEngineConfig {
     pub history: HistoryConfig,
     pub reranker: Option<RerankerConfig>,
     pub graph: Option<GraphConfig>,
+    pub telemetry: Option<TelemetryConfig>,
     pub custom_fact_extraction_prompt: Option<String>,
     pub custom_update_memory_prompt: Option<String>,
 }

@@ -31,7 +31,7 @@ pub use mem7_core::{
 // ── Configuration ────────────────────────────────────────────────────
 pub use mem7_config::{
     EmbeddingConfig, GraphConfig, HistoryConfig, LlmConfig, MemoryEngineConfig, RerankerConfig,
-    VectorConfig,
+    TelemetryConfig, VectorConfig,
 };
 
 // ── Error handling ───────────────────────────────────────────────────
@@ -84,4 +84,10 @@ pub mod graph {
 /// Memory deduplication utilities.
 pub mod dedup {
     pub use mem7_dedup::*;
+}
+
+/// OpenTelemetry integration (requires `otel` feature).
+#[cfg(feature = "otel")]
+pub mod telemetry {
+    pub use mem7_telemetry::{init, shutdown};
 }

@@ -12,7 +12,7 @@ use mem7_history::SqliteHistory;
 use mem7_llm::LlmClient;
 use mem7_reranker::{RerankDocument, RerankerClient};
 use mem7_vector::{VectorIndex, VectorSearchResult};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
 use crate::pipeline;
@@ -82,6 +82,7 @@ impl MemoryEngine {
     /// new memory without any LLM processing — useful for importing raw text.
     ///
     /// `metadata` is an optional JSON object stored under `payload.metadata`.
+    #[instrument(skip(self, messages, metadata), fields(msg_count = messages.len()))]
     pub async fn add(
         &self,
         messages: &[ChatMessage],
@@ -422,6 +423,7 @@ impl MemoryEngine {
     /// over-fetches candidates by `top_k_multiplier` and then reranks them
     /// down to `limit`.
     #[allow(clippy::too_many_arguments)]
+    #[instrument(skip(self, filters))]
     pub async fn search(
         &self,
         query: &str,
@@ -545,7 +547,7 @@ impl MemoryEngine {
         })
     }
 
-    /// Get a single memory by ID.
+    #[instrument(skip(self))]
     pub async fn get(&self, memory_id: Uuid) -> Result<MemoryItem> {
         let entry = self
             .vector_index
@@ -556,7 +558,7 @@ impl MemoryEngine {
         Ok(payload_to_memory_item(memory_id, &entry.1, None))
     }
 
-    /// List all memories matching the given filters.
+    #[instrument(skip(self, filters))]
     pub async fn get_all(
         &self,
         user_id: Option<&str>,
@@ -579,7 +581,7 @@ impl MemoryEngine {
             .collect())
     }
 
-    /// Update a memory's text directly.
+    #[instrument(skip(self, new_text))]
     pub async fn update(&self, memory_id: Uuid, new_text: &str) -> Result<()> {
         let entry = self
             .vector_index
@@ -616,7 +618,7 @@ impl MemoryEngine {
         Ok(())
     }
 
-    /// Delete a memory by ID.
+    #[instrument(skip(self))]
     pub async fn delete(&self, memory_id: Uuid) -> Result<()> {
         let entry = self.vector_index.get(&memory_id).await?;
         let old_text = entry
@@ -633,7 +635,7 @@ impl MemoryEngine {
         Ok(())
     }
 
-    /// Delete all memories matching the given filters.
+    #[instrument(skip(self))]
     pub async fn delete_all(
         &self,
         user_id: Option<&str>,
@@ -659,12 +661,12 @@ impl MemoryEngine {
         Ok(())
     }
 
-    /// Get the change history for a memory.
+    #[instrument(skip(self))]
     pub async fn history(&self, memory_id: Uuid) -> Result<Vec<MemoryEvent>> {
         self.history.get_history(memory_id).await
     }
 
-    /// Reset all data (vector index + history + graph).
+    #[instrument(skip(self))]
     pub async fn reset(&self) -> Result<()> {
         self.vector_index.reset().await?;
         self.history.reset().await?;

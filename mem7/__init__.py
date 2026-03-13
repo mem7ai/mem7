@@ -2,5 +2,17 @@
 
 from mem7.memory import AsyncMemory, Memory
 
-__all__ = ["Memory", "AsyncMemory"]
-__version__ = "0.1.0"
+__all__ = ["Memory", "AsyncMemory", "init_telemetry", "shutdown_telemetry"]
+__version__ = "0.2.0"
+
+
+def init_telemetry(**kwargs):
+    """Initialize OpenTelemetry tracing. See ``mem7.telemetry`` for full docs."""
+    from mem7.telemetry import init_telemetry as _init
+    return _init(**kwargs)
+
+
+def shutdown_telemetry():
+    """Flush pending spans and shut down the OTLP exporter."""
+    from mem7.telemetry import shutdown_telemetry as _shutdown
+    return _shutdown()

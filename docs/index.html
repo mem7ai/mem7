@@ -229,6 +229,7 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
             <div class="arch-mod">mem7-dedup</div>
             <div class="arch-mod">mem7-reranker</div>
             <div class="arch-mod">mem7-graph</div>
+            <div class="arch-mod">mem7-telemetry</div>
             <div class="arch-mod">mem7-store</div>
           </div>
         </div>
@@ -283,6 +284,13 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
           </div>
           <h3>Graph Memory</h3>
           <p>Optional dual-path recall: vector search + graph search run concurrently. Extracts entities &amp; relations via LLM.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3>Observability</h3>
+          <p>Built-in OpenTelemetry integration. Export trace spans for every operation via OTLP to Jaeger, Grafana Tempo, or any collector.</p>
         </div>
       </div>
 

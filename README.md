@@ -26,6 +26,7 @@ Rust Core (tokio async runtime)
     ├── mem7-history    — SQLite audit trail
     ├── mem7-dedup      — LLM-driven memory deduplication
     ├── mem7-reranker   — Search reranking (Cohere / LLM-based)
+    ├── mem7-telemetry  — OpenTelemetry tracing (OTLP export)
     └── mem7-store      — Pipeline orchestrator (MemoryEngine)
 ```
 
@@ -266,6 +267,48 @@ GraphConfig(
     provider="flat",
     llm=LlmConfig(base_url="http://localhost:11434/v1", api_key="ollama", model="qwen2.5:3b"),
 )
+```
+
+## Observability (OpenTelemetry)
+
+mem7 integrates with [OpenTelemetry](https://opentelemetry.io/) via `tracing-opentelemetry`. When enabled, every `add()`, `search()`, `get()`, `update()`, `delete()` call emits a trace span that is exported via OTLP/gRPC to any compatible collector (Jaeger, Grafana Tempo, Datadog, etc.).
+
+**Python:**
+
+```python
+from mem7 import Memory, init_telemetry, shutdown_telemetry
+
+init_telemetry(otlp_endpoint="http://localhost:4317", service_name="my-app")
+
+m = Memory(config=config)
+m.add("I love playing tennis.", user_id="alice")
+# spans are exported automatically
+
+shutdown_telemetry()  # flush before exit
+```
+
+**TypeScript:**
+
+```typescript
+import { MemoryEngine, initTelemetry, shutdownTelemetry } from "@mem7ai/mem7";
+
+initTelemetry(JSON.stringify({ otlp_endpoint: "http://localhost:4317", service_name: "my-app" }));
+
+const engine = await MemoryEngine.create(configJson);
+await engine.add([{ role: "user", content: "I love tennis." }], "alice");
+
+shutdownTelemetry();
+```
+
+**Rust** (requires `otel` feature):
+
+```rust
+// Cargo.toml: mem7 = { version = "0.2", features = ["otel"] }
+use mem7::{TelemetryConfig, telemetry};
+
+telemetry::init(&TelemetryConfig::default())?;
+// ... use MemoryEngine as usual ...
+telemetry::shutdown();
 ```
 
 ## Examples
