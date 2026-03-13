@@ -227,6 +227,7 @@ a:hover { opacity: 0.8; }
   font-weight: 700;
   letter-spacing: -0.01em;
   margin-bottom: 12px;
+  text-align: center;
 }
 
 .section-sub {
@@ -234,6 +235,9 @@ a:hover { opacity: 0.8; }
   font-size: 16px;
   margin-bottom: 48px;
   max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
 }
 
 /* ── Code Card ───────────────────────────────────────────────── */
