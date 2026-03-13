@@ -20,7 +20,7 @@ Python / TypeScript / Rust API
     ▼
 Rust Core (tokio async runtime)
     ├── mem7-llm        — OpenAI-compatible LLM client
-    ├── mem7-embedding  — OpenAI-compatible embedding client
+    ├── mem7-embedding  — Embedding client (OpenAI-compatible / FastEmbed)
     ├── mem7-vector     — Vector index (FlatIndex / Upstash)
     ├── mem7-graph      — Graph store (FlatGraph / Kuzu / Neo4j)
     ├── mem7-history    — SQLite audit trail
@@ -132,11 +132,11 @@ mem7 uses a single **OpenAI-compatible client** for both LLM and Embedding, whic
 | Together | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
 | LM Studio | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
 | Azure OpenAI | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
+| FastEmbed | :white_check_mark: | :white_check_mark: | Local ONNX inference (feature flag `fastembed`) |
 | Hugging Face | :white_check_mark: | :x: | Requires native SDK |
 | Gemini | :white_check_mark: | :x: | Requires native SDK |
 | Vertex AI | :white_check_mark: | :x: | Requires native SDK |
 | AWS Bedrock | :white_check_mark: | :x: | Requires native SDK |
-| FastEmbed | :white_check_mark: | :x: | Python-only (ONNX) |
 | LangChain | :white_check_mark: | :x: | Python framework |
 
 ### Vector Stores
@@ -216,6 +216,35 @@ VectorConfig(
     upstash_token="your-token",
 )
 ```
+
+## Local Embedding (FastEmbed)
+
+mem7 supports fully local embedding via [FastEmbed](https://github.com/Anush008/fastembed-rs) (ONNX Runtime). No API calls needed — models are downloaded and run locally.
+
+Requires the `fastembed` feature flag:
+
+```toml
+# Cargo.toml
+mem7 = { version = "0.2", features = ["fastembed"] }
+```
+
+```python
+from mem7 import Memory
+from mem7.config import MemoryConfig, LlmConfig, EmbeddingConfig
+
+config = MemoryConfig(
+    llm=LlmConfig(base_url="http://localhost:11434/v1", api_key="ollama", model="qwen2.5:7b"),
+    embedding=EmbeddingConfig(
+        provider="fastembed",
+        model="AllMiniLML6V2",  # or "BGEBaseENV15", "NomicEmbedTextV15", etc.
+        dims=384,
+    ),
+)
+
+m = Memory(config=config)  # model downloaded on first use
+```
+
+Supported models include `AllMiniLML6V2`, `BGEBaseENV15`, `BGESmallENV15`, `NomicEmbedTextV1`, `MxbaiEmbedLargeV1`, `GTEBaseENV15`, and their quantized variants.
 
 ## Graph Memory (Dual-Path Recall)
 

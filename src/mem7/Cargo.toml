@@ -10,6 +10,7 @@ description = "LLM-powered long-term memory engine — Rust core with Python bin
 default = []
 kuzu = ["mem7-graph/kuzu"]
 otel = ["dep:mem7-telemetry"]
+fastembed = ["mem7-embedding/fastembed"]
 
 [dependencies]
 mem7-error.workspace = true

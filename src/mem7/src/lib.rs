@@ -47,8 +47,10 @@ pub mod llm {
     pub use mem7_llm::{LlmClient, LlmMessage, LlmResponse, OpenAICompatibleLlm, ResponseFormat};
 }
 
-/// Embedding client trait and the built-in OpenAI-compatible implementation.
+/// Embedding client trait and the built-in implementations.
 pub mod embedding {
+    #[cfg(feature = "fastembed")]
+    pub use mem7_embedding::FastEmbedClient;
     pub use mem7_embedding::{EmbeddingClient, OpenAICompatibleEmbedding};
 }
 

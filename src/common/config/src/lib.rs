@@ -47,6 +47,7 @@ pub struct EmbeddingConfig {
     pub model: String,
     #[serde(default = "default_embedding_dims")]
     pub dims: usize,
+    pub cache_dir: Option<String>,
 }
 
 fn default_embedding_provider() -> String {
@@ -65,6 +66,7 @@ impl Default for EmbeddingConfig {
             api_key: String::new(),
             model: "text-embedding-3-small".into(),
             dims: default_embedding_dims(),
+            cache_dir: None,
         }
     }
 }

@@ -1,6 +1,12 @@
 mod openai;
 
+#[cfg(feature = "fastembed")]
+mod fastembed_provider;
+
 pub use openai::OpenAICompatibleEmbedding;
+
+#[cfg(feature = "fastembed")]
+pub use fastembed_provider::FastEmbedClient;
 
 use std::sync::Arc;
 
@@ -20,6 +26,15 @@ pub fn create_embedding(config: &EmbeddingConfig) -> Result<Arc<dyn EmbeddingCli
         "openai" | "ollama" | "vllm" | "lmstudio" | "deepseek" => {
             Ok(Arc::new(OpenAICompatibleEmbedding::new(config.clone())))
         }
+        #[cfg(feature = "fastembed")]
+        "fastembed" => Ok(Arc::new(FastEmbedClient::new(
+            &config.model,
+            config.cache_dir.as_deref(),
+        )?)),
+        #[cfg(not(feature = "fastembed"))]
+        "fastembed" => Err(Mem7Error::Config(
+            "fastembed provider requires the `fastembed` feature to be enabled".into(),
+        )),
         other => Err(Mem7Error::Config(format!(
             "unknown embedding provider: {other}"
         ))),
