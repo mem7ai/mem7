@@ -42,11 +42,91 @@ impl MemoryEngine {
         })
     }
 
-    /// Add memories from a conversation. Extracts facts, deduplicates, and stores.
+    /// Add memories from a conversation.
     ///
-    /// `metadata` is an optional JSON object that will be stored alongside each
-    /// memory under the `payload.metadata` key and can be filtered on later.
+    /// When `infer` is `true` (the default), the LLM extracts facts from the
+    /// conversation, deduplicates them against existing memories, and decides
+    /// whether to add, update, or delete.
+    ///
+    /// When `infer` is `false`, each message's content is stored directly as a
+    /// new memory without any LLM processing — useful for importing raw text.
+    ///
+    /// `metadata` is an optional JSON object stored under `payload.metadata`.
     pub async fn add(
+        &self,
+        messages: &[ChatMessage],
+        user_id: Option<&str>,
+        agent_id: Option<&str>,
+        run_id: Option<&str>,
+        metadata: Option<&serde_json::Value>,
+        infer: bool,
+    ) -> Result<AddResult> {
+        if infer {
+            self.add_with_inference(messages, user_id, agent_id, run_id, metadata)
+                .await
+        } else {
+            self.add_raw(messages, user_id, agent_id, run_id, metadata)
+                .await
+        }
+    }
+
+    /// Store raw message texts directly without LLM inference or deduplication.
+    async fn add_raw(
+        &self,
+        messages: &[ChatMessage],
+        user_id: Option<&str>,
+        agent_id: Option<&str>,
+        run_id: Option<&str>,
+        metadata: Option<&serde_json::Value>,
+    ) -> Result<AddResult> {
+        let texts: Vec<&str> = messages.iter().map(|m| m.content.as_str()).collect();
+        if texts.is_empty() {
+            return Ok(AddResult {
+                results: Vec::new(),
+            });
+        }
+
+        let owned: Vec<String> = texts.iter().map(|s| (*s).to_string()).collect();
+        let embeddings = self.embedder.embed(&owned).await?;
+
+        let now = chrono_now();
+        let mut results = Vec::new();
+
+        for (text, vec) in texts.iter().zip(embeddings) {
+            let memory_id = new_memory_id();
+
+            let mut payload = serde_json::json!({
+                "text": text,
+                "user_id": user_id,
+                "agent_id": agent_id,
+                "run_id": run_id,
+                "created_at": now,
+                "updated_at": now,
+            });
+            if let Some(meta) = metadata {
+                payload["metadata"] = meta.clone();
+            }
+
+            self.vector_index.insert(memory_id, &vec, payload).await?;
+
+            self.history
+                .add_event(memory_id, None, Some(text), MemoryAction::Add)
+                .await?;
+
+            results.push(MemoryActionResult {
+                id: memory_id,
+                action: MemoryAction::Add,
+                old_value: None,
+                new_value: Some(text.to_string()),
+            });
+        }
+
+        info!(count = results.len(), infer = false, "raw memories stored");
+        Ok(AddResult { results })
+    }
+
+    /// Full LLM-powered pipeline: extract facts, deduplicate, store.
+    async fn add_with_inference(
         &self,
         messages: &[ChatMessage],
         user_id: Option<&str>,

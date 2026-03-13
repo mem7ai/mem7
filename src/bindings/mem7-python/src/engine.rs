@@ -39,7 +39,7 @@ impl PyMemoryEngine {
         })
     }
 
-    #[pyo3(signature = (messages, user_id=None, agent_id=None, run_id=None, metadata=None))]
+    #[pyo3(signature = (messages, user_id=None, agent_id=None, run_id=None, metadata=None, infer=None))]
     fn add(
         &self,
         messages: Vec<(String, String)>,
@@ -47,6 +47,7 @@ impl PyMemoryEngine {
         agent_id: Option<String>,
         run_id: Option<String>,
         metadata: Option<String>,
+        infer: Option<bool>,
     ) -> PyResult<PyAddResult> {
         let msgs: Vec<ChatMessage> = messages
             .into_iter()
@@ -66,6 +67,7 @@ impl PyMemoryEngine {
                 agent_id.as_deref(),
                 run_id.as_deref(),
                 meta_val.as_ref(),
+                infer.unwrap_or(true),
             ))
             .map_err(to_py_err)?;
 

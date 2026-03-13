@@ -38,6 +38,7 @@ impl JsMemoryEngine {
         agent_id: Option<String>,
         run_id: Option<String>,
         metadata: Option<String>,
+        infer: Option<bool>,
     ) -> Result<JsAddResult> {
         let msgs: Vec<ChatMessage> = messages
             .into_iter()
@@ -60,6 +61,7 @@ impl JsMemoryEngine {
                 agent_id.as_deref(),
                 run_id.as_deref(),
                 meta_val.as_ref(),
+                infer.unwrap_or(true),
             )
             .await
             .map_err(to_napi_err)?;

@@ -72,11 +72,13 @@ class Memory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        infer: bool = True,
     ) -> dict:
         msgs = _normalize_messages(messages)
         meta_json = _json.dumps(metadata) if metadata is not None else None
         result = self._engine.add(
-            msgs, user_id=user_id, agent_id=agent_id, run_id=run_id, metadata=meta_json
+            msgs, user_id=user_id, agent_id=agent_id, run_id=run_id,
+            metadata=meta_json, infer=infer,
         )
         return _add_result_to_dict(result)
 
@@ -157,6 +159,7 @@ class AsyncMemory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        infer: bool = True,
     ) -> dict:
         msgs = _normalize_messages(messages)
         meta_json = _json.dumps(metadata) if metadata is not None else None
@@ -164,7 +167,8 @@ class AsyncMemory:
         result = await loop.run_in_executor(
             None,
             lambda: self._engine.add(
-                msgs, user_id=user_id, agent_id=agent_id, run_id=run_id, metadata=meta_json
+                msgs, user_id=user_id, agent_id=agent_id, run_id=run_id,
+                metadata=meta_json, infer=infer,
             ),
         )
         return _add_result_to_dict(result)

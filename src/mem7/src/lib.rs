@@ -15,7 +15,7 @@
 //!     let messages = vec![
 //!         ChatMessage { role: "user".into(), content: "I love Rust".into() },
 //!     ];
-//!     let result = engine.add(&messages, None, None, None, None).await?;
+//!     let result = engine.add(&messages, None, None, None, None, true).await?;
 //!     println!("{result:?}");
 //!
 //!     Ok(())
