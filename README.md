@@ -16,7 +16,7 @@ cargo add mem7            # Rust
 
 ```
 Python / TypeScript / Rust API
-    │  PyO3 / napi-rs / native
+    │  PyO3 (sync + async) / napi-rs / native
     ▼
 Rust Core (tokio async runtime)
     ├── mem7-llm        — OpenAI-compatible LLM client
@@ -24,10 +24,11 @@ Rust Core (tokio async runtime)
     ├── mem7-vector     — Vector index (FlatIndex / Upstash)
     ├── mem7-history    — SQLite audit trail
     ├── mem7-dedup      — LLM-driven memory deduplication
+    ├── mem7-reranker   — Search reranking (Cohere / LLM-based)
     └── mem7-store      — Pipeline orchestrator (MemoryEngine)
 ```
 
-## Quick Start (Python)
+## Quick Start (Python — Sync)
 
 ```python
 from mem7 import Memory
@@ -50,6 +51,35 @@ config = MemoryConfig(
 m = Memory(config=config)
 m.add("I love playing tennis and my coach is Sarah.", user_id="alice")
 results = m.search("What sports does Alice play?", user_id="alice")
+```
+
+## Quick Start (Python — Async)
+
+```python
+import asyncio
+from mem7 import AsyncMemory
+from mem7.config import MemoryConfig, LlmConfig, EmbeddingConfig
+
+async def main():
+    config = MemoryConfig(
+        llm=LlmConfig(
+            base_url="http://localhost:11434/v1",
+            api_key="ollama",
+            model="qwen2.5:7b",
+        ),
+        embedding=EmbeddingConfig(
+            base_url="http://localhost:11434/v1",
+            api_key="ollama",
+            model="mxbai-embed-large",
+            dims=1024,
+        ),
+    )
+
+    m = await AsyncMemory.create(config=config)
+    await m.add("I love playing tennis and my coach is Sarah.", user_id="alice")
+    results = await m.search("What sports does Alice play?", user_id="alice")
+
+asyncio.run(main())
 ```
 
 ## Quick Start (TypeScript)
@@ -135,11 +165,20 @@ mem7 uses a single **OpenAI-compatible client** for both LLM and Embedding, whic
 | Valkey | :white_check_mark: | :x: | |
 | LangChain | :white_check_mark: | :x: | |
 
+### Rerankers
+
+| Provider | mem0 | mem7 | Notes |
+|----------|:----:|:----:|-------|
+| Cohere | :white_check_mark: | :white_check_mark: | Cohere v2 rerank API |
+| LLM-based | :white_check_mark: | :white_check_mark: | Any OpenAI-compatible LLM |
+| Jina AI | :white_check_mark: | :x: | Planned |
+| Cross-encoder | :white_check_mark: | :x: | Planned |
+
 ### Language Bindings
 
 | Language | Status |
 |----------|--------|
-| Python | :white_check_mark: PyPI: `pip install mem7` |
+| Python (sync + async) | :white_check_mark: PyPI: `pip install mem7` |
 | TypeScript / Node.js | :white_check_mark: npm: `npm install @mem7ai/mem7` |
 | Rust | :white_check_mark: crates.io: `cargo add mem7` |
 | Go | Planned |

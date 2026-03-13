@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import json as _json
 from typing import Any, Dict, Optional, Union
 
-from mem7._mem7 import PyMemoryEngine
+from mem7._mem7 import PyAsyncMemoryEngine, PyMemoryEngine
 from mem7.config import MemoryConfig
 
 
@@ -141,16 +140,31 @@ class Memory:
 
 
 class AsyncMemory:
-    """Async memory interface. Runs sync Rust calls in a thread executor."""
+    """Async memory interface backed by native Rust coroutines via pyo3-async-runtimes."""
 
-    def __init__(self, config: Optional[MemoryConfig] = None):
-        cfg = config or MemoryConfig()
-        self._engine = PyMemoryEngine(cfg.to_json())
+    def __init__(self) -> None:
+        self._engine: Optional[PyAsyncMemoryEngine] = None
 
     @classmethod
-    def from_config(cls, config_dict: dict) -> AsyncMemory:
+    async def create(cls, config: Optional[MemoryConfig] = None) -> AsyncMemory:
+        """Async factory -- use this instead of ``__init__``."""
+        cfg = config or MemoryConfig()
+        obj = cls()
+        obj._engine = await PyAsyncMemoryEngine.create(cfg.to_json())
+        return obj
+
+    @classmethod
+    async def from_config(cls, config_dict: dict) -> AsyncMemory:
         cfg = MemoryConfig(**config_dict)
-        return cls(config=cfg)
+        return await cls.create(config=cfg)
+
+    def _check_engine(self) -> PyAsyncMemoryEngine:
+        if self._engine is None:
+            raise RuntimeError(
+                "AsyncMemory is not initialized. "
+                "Use 'await AsyncMemory.create(config)' instead of 'AsyncMemory()'."
+            )
+        return self._engine
 
     async def add(
         self,
@@ -162,15 +176,12 @@ class AsyncMemory:
         metadata: Optional[Dict[str, Any]] = None,
         infer: bool = True,
     ) -> dict:
+        engine = self._check_engine()
         msgs = _normalize_messages(messages)
         meta_json = _json.dumps(metadata) if metadata is not None else None
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: self._engine.add(
-                msgs, user_id=user_id, agent_id=agent_id, run_id=run_id,
-                metadata=meta_json, infer=infer,
-            ),
+        result = await engine.add(
+            msgs, user_id=user_id, agent_id=agent_id, run_id=run_id,
+            metadata=meta_json, infer=infer,
         )
         return _add_result_to_dict(result)
 
@@ -185,20 +196,17 @@ class AsyncMemory:
         filters: Optional[Dict[str, Any]] = None,
         rerank: bool = True,
     ) -> dict:
+        engine = self._check_engine()
         filters_json = _json.dumps(filters) if filters is not None else None
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: self._engine.search(
-                query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-                filters=filters_json, rerank=rerank,
-            ),
+        result = await engine.search(
+            query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
+            filters=filters_json, rerank=rerank,
         )
         return _search_result_to_dict(result)
 
     async def get(self, memory_id: str) -> dict:
-        loop = asyncio.get_event_loop()
-        item = await loop.run_in_executor(None, lambda: self._engine.get(memory_id))
+        engine = self._check_engine()
+        item = await engine.get(memory_id)
         return _memory_item_to_dict(item)
 
     async def get_all(
@@ -209,25 +217,20 @@ class AsyncMemory:
         run_id: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> list:
+        engine = self._check_engine()
         filters_json = _json.dumps(filters) if filters is not None else None
-        loop = asyncio.get_event_loop()
-        items = await loop.run_in_executor(
-            None,
-            lambda: self._engine.get_all(
-                user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json
-            ),
+        items = await engine.get_all(
+            user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json
         )
         return [_memory_item_to_dict(item) for item in items]
 
     async def update(self, memory_id: str, new_text: str) -> None:
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None, lambda: self._engine.update(memory_id, new_text)
-        )
+        engine = self._check_engine()
+        await engine.update(memory_id, new_text)
 
     async def delete(self, memory_id: str) -> None:
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, lambda: self._engine.delete(memory_id))
+        engine = self._check_engine()
+        await engine.delete(memory_id)
 
     async def delete_all(
         self,
@@ -236,22 +239,17 @@ class AsyncMemory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
     ) -> None:
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
-            lambda: self._engine.delete_all(
-                user_id=user_id, agent_id=agent_id, run_id=run_id
-            ),
-        )
+        engine = self._check_engine()
+        await engine.delete_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
 
     async def history(self, memory_id: str) -> list:
-        loop = asyncio.get_event_loop()
-        events = await loop.run_in_executor(None, lambda: self._engine.history(memory_id))
+        engine = self._check_engine()
+        events = await engine.history(memory_id)
         return [_event_to_dict(e) for e in events]
 
     async def reset(self) -> None:
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, lambda: self._engine.reset())
+        engine = self._check_engine()
+        await engine.reset()
 
 
 def _normalize_messages(messages: Union[str, list]) -> list[tuple[str, str]]:
