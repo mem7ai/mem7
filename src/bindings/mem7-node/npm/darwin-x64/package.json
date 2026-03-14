@@ -1,6 +1,6 @@
 {
   "name": "@mem7ai/mem7-darwin-x64",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "os": ["darwin"],
   "cpu": ["x64"],
   "main": "mem7.darwin-x64.node",
