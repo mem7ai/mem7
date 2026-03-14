@@ -102,6 +102,7 @@ impl MemoryEngine {
     }
 
     /// Store raw message texts directly without LLM inference or deduplication.
+    /// System messages are skipped. Each message's `role` is stored in the payload.
     async fn add_raw(
         &self,
         messages: &[ChatMessage],
@@ -110,25 +111,28 @@ impl MemoryEngine {
         run_id: Option<&str>,
         metadata: Option<&serde_json::Value>,
     ) -> Result<AddResult> {
-        let texts: Vec<&str> = messages.iter().map(|m| m.content.as_str()).collect();
-        if texts.is_empty() {
+        let non_system: Vec<&ChatMessage> =
+            messages.iter().filter(|m| m.role != "system").collect();
+
+        if non_system.is_empty() {
             return Ok(AddResult {
                 results: Vec::new(),
                 relations: Vec::new(),
             });
         }
 
-        let owned: Vec<String> = texts.iter().map(|s| (*s).to_string()).collect();
+        let owned: Vec<String> = non_system.iter().map(|m| m.content.clone()).collect();
         let embeddings = self.embedder.embed(&owned).await?;
 
         let now = chrono_now();
         let mut results = Vec::new();
 
-        for (text, vec) in texts.iter().zip(embeddings) {
+        for (msg, vec) in non_system.iter().zip(embeddings) {
             let memory_id = new_memory_id();
 
             let mut payload = serde_json::json!({
-                "text": text,
+                "text": msg.content,
+                "role": msg.role,
                 "user_id": user_id,
                 "agent_id": agent_id,
                 "run_id": run_id,
@@ -142,20 +146,24 @@ impl MemoryEngine {
             self.vector_index.insert(memory_id, &vec, payload).await?;
 
             self.history
-                .add_event(memory_id, None, Some(text), MemoryAction::Add)
+                .add_event(memory_id, None, Some(&msg.content), MemoryAction::Add)
                 .await?;
 
             results.push(MemoryActionResult {
                 id: memory_id,
                 action: MemoryAction::Add,
                 old_value: None,
-                new_value: Some(text.to_string()),
+                new_value: Some(msg.content.clone()),
             });
         }
 
         // Graph extraction for raw add (runs in parallel if graph is enabled)
         let relations = if self.graph.is_some() {
-            let conversation = texts.join("\n");
+            let conversation = non_system
+                .iter()
+                .map(|m| m.content.as_str())
+                .collect::<Vec<_>>()
+                .join("\n");
             let filter = MemoryFilter {
                 user_id: user_id.map(String::from),
                 agent_id: agent_id.map(String::from),
@@ -240,6 +248,7 @@ impl MemoryEngine {
         let facts = pipeline::extract_facts(
             self.llm.as_ref(),
             messages,
+            agent_id,
             self.config.custom_fact_extraction_prompt.as_deref(),
         )
         .await?;
@@ -362,7 +371,40 @@ impl MemoryEngine {
                         });
                     }
                 }
-                MemoryAction::None => {}
+                MemoryAction::None => {
+                    if let Some(real_id) = id_mapping.resolve(&decision.id) {
+                        let needs_update = agent_id.is_some() || run_id.is_some();
+                        if needs_update
+                            && let Ok(Some(entry)) = self.vector_index.get(&real_id).await
+                        {
+                            let mut payload = entry.1;
+                            let mut changed = false;
+                            if let Some(aid) = agent_id {
+                                let cur = payload.get("agent_id").and_then(|v| v.as_str());
+                                if cur != Some(aid) {
+                                    payload["agent_id"] =
+                                        serde_json::Value::String(aid.to_string());
+                                    changed = true;
+                                }
+                            }
+                            if let Some(rid) = run_id {
+                                let cur = payload.get("run_id").and_then(|v| v.as_str());
+                                if cur != Some(rid) {
+                                    payload["run_id"] = serde_json::Value::String(rid.to_string());
+                                    changed = true;
+                                }
+                            }
+                            if changed {
+                                payload["updated_at"] = serde_json::Value::String(now.clone());
+                                let _ = self
+                                    .vector_index
+                                    .update(&real_id, None, Some(payload))
+                                    .await;
+                                debug!(id = %real_id, "updated session IDs on NONE action");
+                            }
+                        }
+                    }
+                }
             }
         }
 
