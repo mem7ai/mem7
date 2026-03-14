@@ -3,8 +3,10 @@ use mem7_llm::{LlmClient, LlmMessage, ResponseFormat};
 use serde::Deserialize;
 use tracing::debug;
 
-use crate::prompts::{ENTITY_EXTRACTION_PROMPT, RELATION_EXTRACTION_PROMPT};
-use crate::types::{Entity, Relation};
+use crate::prompts::{
+    DELETE_RELATIONS_PROMPT, ENTITY_EXTRACTION_PROMPT, RELATION_EXTRACTION_PROMPT,
+};
+use crate::types::{Entity, GraphSearchResult, Relation};
 
 #[derive(Debug, Deserialize)]
 struct EntityExtractionOutput {
@@ -55,6 +57,9 @@ pub async fn extract_entities(
         .map(|e| Entity {
             name: e.entity,
             entity_type: e.entity_type,
+            embedding: None,
+            created_at: None,
+            mentions: 0,
         })
         .collect())
 }
@@ -96,7 +101,56 @@ pub async fn extract_relations(
             source: r.source,
             relationship: r.relationship,
             destination: r.destination,
+            created_at: None,
+            mentions: 0,
+            valid: true,
         })
+        .collect())
+}
+
+#[derive(Debug, Deserialize)]
+struct DeletionOutput {
+    #[serde(default)]
+    deletions: Vec<RawRelation>,
+}
+
+/// Ask the LLM which existing relations should be invalidated given new data.
+/// Returns triples `(source, relationship, destination)` to soft-delete.
+pub async fn extract_deletions(
+    llm: &dyn LlmClient,
+    existing: &[GraphSearchResult],
+    new_data: &str,
+) -> Result<Vec<(String, String, String)>> {
+    if existing.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let existing_str = existing
+        .iter()
+        .map(|r| format!("{} -- {} -- {}", r.source, r.relationship, r.destination))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let user_msg =
+        format!("Here are the existing memories:\n{existing_str}\n\nNew Information:\n{new_data}");
+
+    let messages = vec![
+        LlmMessage::system(DELETE_RELATIONS_PROMPT),
+        LlmMessage::user(user_msg),
+    ];
+
+    let response = llm
+        .chat_completion(&messages, Some(&ResponseFormat::json()))
+        .await?;
+
+    debug!(raw = %response.content, "deletion extraction response");
+
+    let output: DeletionOutput = parse_json_response(&response.content)?;
+
+    Ok(output
+        .deletions
+        .into_iter()
+        .map(|d| (d.source, d.relationship, d.destination))
         .collect())
 }
 

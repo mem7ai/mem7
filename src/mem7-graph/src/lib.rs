@@ -1,3 +1,4 @@
+pub mod bm25;
 pub mod extraction;
 mod flat;
 #[cfg(feature = "kuzu")]
@@ -33,13 +34,31 @@ pub trait GraphStore: Send + Sync {
         filter: &MemoryFilter,
     ) -> Result<()>;
 
-    /// Search for relations matching the query, scoped by filter.
+    /// Text-based search for relations (legacy fallback).
     async fn search(
         &self,
         query: &str,
         filter: &MemoryFilter,
         limit: usize,
     ) -> Result<Vec<GraphSearchResult>>;
+
+    /// Semantic search: find entities by embedding cosine similarity, then
+    /// return all valid relations touching matched entities (1-hop traversal).
+    async fn search_by_embedding(
+        &self,
+        embedding: &[f32],
+        filter: &MemoryFilter,
+        threshold: f32,
+        limit: usize,
+    ) -> Result<Vec<GraphSearchResult>>;
+
+    /// Soft-delete relations by marking them as `valid = false`.
+    /// Each tuple is `(source, relationship, destination)`.
+    async fn invalidate_relations(
+        &self,
+        triples: &[(String, String, String)],
+        filter: &MemoryFilter,
+    ) -> Result<()>;
 
     /// Delete all relations matching the filter.
     async fn delete_all(&self, filter: &MemoryFilter) -> Result<()>;

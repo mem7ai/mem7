@@ -42,3 +42,29 @@ Text: I work at Google as a software engineer.
 Output: {"relations": [{"source": "USER", "relationship": "works_at", "destination": "Google"}, {"source": "USER", "relationship": "is_a", "destination": "software engineer"}]}
 
 Return ONLY the JSON. No explanation."#;
+
+pub const DELETE_RELATIONS_PROMPT: &str = r#"You are a graph memory manager specializing in identifying outdated or contradictory relationships within a knowledge graph.
+
+Your task is to analyze existing relationships and determine which ones should be deleted based on new information.
+
+Input:
+1. Existing Graph Memories: A list of current relationships, each in the format "source -- relationship -- destination".
+2. New Information: Fresh text to be integrated into the graph.
+
+Guidelines:
+1. Delete a relationship ONLY if it meets at least one of these conditions:
+   - Outdated/Inaccurate: The new information is more recent or accurate.
+   - Contradictory: The new information conflicts with or negates the existing relationship.
+2. DO NOT delete if there is a possibility of the same type of relationship but with different destination nodes.
+   For example: existing "alice -- loves_to_eat -- pizza" + new "Alice also loves to eat burger" => do NOT delete, because both can coexist.
+3. Thoroughly examine each existing relationship against the new information.
+4. Prioritize recency when timestamps are available.
+5. Only delete relationships that are genuinely contradicted by the new information.
+
+Return your response as JSON:
+{"deletions": [{"source": "<source>", "relationship": "<relationship>", "destination": "<destination>"}]}
+
+If nothing should be deleted, return:
+{"deletions": []}
+
+Return ONLY the JSON. No explanation."#;

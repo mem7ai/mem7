@@ -411,7 +411,8 @@ impl MemoryEngine {
         Ok((results, ()))
     }
 
-    /// Extract entities and relations from conversation text and store them in the graph.
+    /// Extract entities and relations from conversation text, embed entity names,
+    /// store them in the graph, then run conflict detection to soft-delete contradicted relations.
     async fn add_graph(
         &self,
         conversation: &str,
@@ -432,19 +433,78 @@ impl MemoryEngine {
             .as_ref()
             .and_then(|g| g.custom_prompt.as_deref());
 
-        let entities =
+        let mut entities =
             mem7_graph::extraction::extract_entities(llm.as_ref(), conversation, custom_prompt)
                 .await?;
 
         debug!(count = entities.len(), "graph: extracted entities");
 
-        let relations =
+        if entities.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut relations =
             mem7_graph::extraction::extract_relations(llm.as_ref(), conversation, &entities, None)
                 .await?;
 
         debug!(count = relations.len(), "graph: extracted relations");
 
+        // Embed entity names
+        let entity_names: Vec<String> = entities.iter().map(|e| e.name.clone()).collect();
+        let embeddings = self.embedder.embed(&entity_names).await?;
+        let now = chrono_now();
+
+        for (entity, emb) in entities.iter_mut().zip(&embeddings) {
+            entity.embedding = Some(emb.clone());
+            entity.created_at = Some(now.clone());
+        }
+        for rel in &mut relations {
+            rel.created_at = Some(now.clone());
+        }
+
+        // Store entities and relations
         graph.add_relations(&relations, &entities, filter).await?;
+
+        // Conflict detection: search existing triples for involved entities
+        let mut existing_triples = Vec::new();
+        let mut seen_keys = std::collections::HashSet::new();
+        for emb in &embeddings {
+            let hits = graph
+                .search_by_embedding(emb, filter, 0.5, 50)
+                .await
+                .unwrap_or_default();
+            for hit in hits {
+                let key = (
+                    hit.source.clone(),
+                    hit.relationship.clone(),
+                    hit.destination.clone(),
+                );
+                if seen_keys.insert(key) {
+                    existing_triples.push(hit);
+                }
+            }
+        }
+
+        if !existing_triples.is_empty() {
+            let deletions = mem7_graph::extraction::extract_deletions(
+                llm.as_ref(),
+                &existing_triples,
+                conversation,
+            )
+            .await
+            .unwrap_or_else(|e| {
+                warn!(error = %e, "graph conflict detection failed");
+                Vec::new()
+            });
+
+            if !deletions.is_empty() {
+                debug!(
+                    count = deletions.len(),
+                    "graph: soft-deleting contradicted relations"
+                );
+                graph.invalidate_relations(&deletions, filter).await?;
+            }
+        }
 
         Ok(relations
             .into_iter()
@@ -511,22 +571,14 @@ impl MemoryEngine {
             .vector_index
             .search(&query_vec, fetch_limit, Some(&filter));
 
-        let graph_future = async {
-            if let Some(graph) = &self.graph {
-                graph
-                    .search(query, &graph_filter, limit)
-                    .await
-                    .unwrap_or_else(|e| {
-                        warn!(error = %e, "graph search failed");
-                        Vec::new()
-                    })
-            } else {
-                Vec::new()
-            }
-        };
+        let graph_future = self.search_graph(query, &graph_filter, limit);
 
         let (results, graph_results) = tokio::join!(vector_future, graph_future);
         let results = results?;
+        let graph_results = graph_results.unwrap_or_else(|e| {
+            warn!(error = %e, "graph search failed");
+            Vec::new()
+        });
 
         let memories = if should_rerank && !results.is_empty() {
             let reranker = self.reranker.as_ref().unwrap();
@@ -717,6 +769,73 @@ impl MemoryEngine {
         }
         info!("MemoryEngine reset");
         Ok(())
+    }
+
+    /// Semantic graph search: extract entities from query, embed them,
+    /// cosine match graph nodes, 1-hop traversal, BM25 rerank.
+    async fn search_graph(
+        &self,
+        query: &str,
+        filter: &MemoryFilter,
+        limit: usize,
+    ) -> Result<Vec<mem7_graph::GraphSearchResult>> {
+        let graph = match &self.graph {
+            Some(g) => g,
+            None => return Ok(Vec::new()),
+        };
+        let llm = match &self.graph_llm {
+            Some(l) => l,
+            None => return Ok(Vec::new()),
+        };
+
+        let custom_prompt = self
+            .config
+            .graph
+            .as_ref()
+            .and_then(|g| g.custom_prompt.as_deref());
+
+        let entities =
+            mem7_graph::extraction::extract_entities(llm.as_ref(), query, custom_prompt).await?;
+
+        if entities.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        debug!(
+            count = entities.len(),
+            "graph search: extracted entities from query"
+        );
+
+        let entity_names: Vec<String> = entities.iter().map(|e| e.name.clone()).collect();
+        let embeddings = self.embedder.embed(&entity_names).await?;
+
+        let mut all_results = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+
+        for emb in &embeddings {
+            let hits = graph
+                .search_by_embedding(emb, filter, 0.5, limit * 3)
+                .await?;
+            for hit in hits {
+                let key = (
+                    hit.source.clone(),
+                    hit.relationship.clone(),
+                    hit.destination.clone(),
+                );
+                if seen.insert(key) {
+                    all_results.push(hit);
+                }
+            }
+        }
+
+        if all_results.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let reranked = mem7_graph::bm25::rerank(&all_results, query, limit);
+        debug!(count = reranked.len(), "graph search: BM25 reranked");
+
+        Ok(reranked)
     }
 }
 
