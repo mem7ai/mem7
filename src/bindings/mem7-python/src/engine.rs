@@ -51,7 +51,11 @@ impl PyMemoryEngine {
     ) -> PyResult<PyAddResult> {
         let msgs: Vec<ChatMessage> = messages
             .into_iter()
-            .map(|(role, content)| ChatMessage { role, content })
+            .map(|(role, content)| ChatMessage {
+                role,
+                content,
+                images: Vec::new(),
+            })
             .collect();
 
         let meta_val: Option<serde_json::Value> = metadata
@@ -75,7 +79,7 @@ impl PyMemoryEngine {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None, rerank=None))]
+    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None, rerank=None, threshold=None))]
     fn search(
         &self,
         query: &str,
@@ -85,6 +89,7 @@ impl PyMemoryEngine {
         limit: usize,
         filters: Option<String>,
         rerank: Option<bool>,
+        threshold: Option<f32>,
     ) -> PyResult<PySearchResult> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -101,6 +106,7 @@ impl PyMemoryEngine {
                 limit,
                 filters_val.as_ref(),
                 rerank.unwrap_or(true),
+                threshold,
             ))
             .map_err(to_py_err)?;
 
@@ -115,13 +121,14 @@ impl PyMemoryEngine {
         Ok(item.into())
     }
 
-    #[pyo3(signature = (user_id=None, agent_id=None, run_id=None, filters=None))]
+    #[pyo3(signature = (user_id=None, agent_id=None, run_id=None, filters=None, limit=None))]
     fn get_all(
         &self,
         user_id: Option<String>,
         agent_id: Option<String>,
         run_id: Option<String>,
         filters: Option<String>,
+        limit: Option<usize>,
     ) -> PyResult<Vec<PyMemoryItem>> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -135,6 +142,7 @@ impl PyMemoryEngine {
                 agent_id.as_deref(),
                 run_id.as_deref(),
                 filters_val.as_ref(),
+                limit,
             ))
             .map_err(to_py_err)?;
 

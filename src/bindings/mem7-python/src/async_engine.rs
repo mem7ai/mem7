@@ -57,7 +57,11 @@ impl PyAsyncMemoryEngine {
     ) -> PyResult<Bound<'py, PyAny>> {
         let msgs: Vec<ChatMessage> = messages
             .into_iter()
-            .map(|(role, content)| ChatMessage { role, content })
+            .map(|(role, content)| ChatMessage {
+                role,
+                content,
+                images: Vec::new(),
+            })
             .collect();
 
         let meta_val: Option<serde_json::Value> = metadata
@@ -85,7 +89,7 @@ impl PyAsyncMemoryEngine {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None, rerank=None))]
+    #[pyo3(signature = (query, user_id=None, agent_id=None, run_id=None, limit=5, filters=None, rerank=None, threshold=None))]
     fn search<'py>(
         &self,
         py: Python<'py>,
@@ -96,6 +100,7 @@ impl PyAsyncMemoryEngine {
         limit: usize,
         filters: Option<String>,
         rerank: Option<bool>,
+        threshold: Option<f32>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -115,6 +120,7 @@ impl PyAsyncMemoryEngine {
                     limit,
                     filters_val.as_ref(),
                     rerank,
+                    threshold,
                 )
                 .await
                 .map_err(to_py_err)?;
@@ -134,7 +140,7 @@ impl PyAsyncMemoryEngine {
         })
     }
 
-    #[pyo3(signature = (user_id=None, agent_id=None, run_id=None, filters=None))]
+    #[pyo3(signature = (user_id=None, agent_id=None, run_id=None, filters=None, limit=None))]
     fn get_all<'py>(
         &self,
         py: Python<'py>,
@@ -142,6 +148,7 @@ impl PyAsyncMemoryEngine {
         agent_id: Option<String>,
         run_id: Option<String>,
         filters: Option<String>,
+        limit: Option<usize>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -157,6 +164,7 @@ impl PyAsyncMemoryEngine {
                     agent_id.as_deref(),
                     run_id.as_deref(),
                     filters_val.as_ref(),
+                    limit,
                 )
                 .await
                 .map_err(to_py_err)?;

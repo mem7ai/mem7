@@ -45,6 +45,7 @@ impl JsMemoryEngine {
             .map(|m| ChatMessage {
                 role: m.role,
                 content: m.content,
+                images: Vec::new(),
             })
             .collect();
 
@@ -80,6 +81,7 @@ impl JsMemoryEngine {
         limit: Option<u32>,
         filters: Option<String>,
         rerank: Option<bool>,
+        threshold: Option<f64>,
     ) -> Result<JsSearchResult> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -96,6 +98,7 @@ impl JsMemoryEngine {
                 limit.unwrap_or(5) as usize,
                 filters_val.as_ref(),
                 rerank.unwrap_or(true),
+                threshold.map(|t| t as f32),
             )
             .await
             .map_err(to_napi_err)?;
@@ -119,6 +122,7 @@ impl JsMemoryEngine {
         agent_id: Option<String>,
         run_id: Option<String>,
         filters: Option<String>,
+        limit: Option<u32>,
     ) -> Result<Vec<JsMemoryItem>> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -132,6 +136,7 @@ impl JsMemoryEngine {
                 agent_id.as_deref(),
                 run_id.as_deref(),
                 filters_val.as_ref(),
+                limit.map(|l| l as usize),
             )
             .await
             .map_err(to_napi_err)?;

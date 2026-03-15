@@ -15,6 +15,7 @@ build/
 *.db
 *.dSYM
 *.dSYM/
+.idea/
 
 # Node.js
 node_modules/

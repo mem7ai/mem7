@@ -11,6 +11,10 @@ pub struct LlmConfig {
     pub temperature: f32,
     #[serde(default = "default_max_tokens")]
     pub max_tokens: u32,
+    /// When true, image messages are sent to the LLM to produce text
+    /// descriptions that are then stored as memory content.
+    #[serde(default)]
+    pub enable_vision: bool,
 }
 
 fn default_llm_provider() -> String {
@@ -34,6 +38,7 @@ impl Default for LlmConfig {
             model: "gpt-4.1-nano".into(),
             temperature: default_temperature(),
             max_tokens: default_max_tokens(),
+            enable_vision: false,
         }
     }
 }

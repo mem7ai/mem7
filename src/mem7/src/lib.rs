@@ -13,7 +13,7 @@
 //!     let engine = MemoryEngine::new(config).await?;
 //!
 //!     let messages = vec![
-//!         ChatMessage { role: "user".into(), content: "I love Rust".into() },
+//!         ChatMessage { role: "user".into(), content: "I love Rust".into(), images: vec![] },
 //!     ];
 //!     let result = engine.add(&messages, None, None, None, None, true).await?;
 //!     println!("{result:?}");

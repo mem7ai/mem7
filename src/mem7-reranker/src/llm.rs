@@ -19,6 +19,7 @@ impl LlmReranker {
             model: model.to_string(),
             temperature: 0.0,
             max_tokens: 50,
+            enable_vision: false,
         };
         Self {
             llm: OpenAICompatibleLlm::new(config),

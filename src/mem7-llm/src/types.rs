@@ -1,9 +1,41 @@
-use serde::{Deserialize, Serialize};
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Serialize, Serializer};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A chat message sent to the LLM.
+///
+/// When `images` is empty, the message serializes as the standard
+/// `{"role": "...", "content": "..."}` form.  When images are present
+/// it emits the multi-modal content-array format required by vision
+/// models (`[{"type":"text","text":"..."}, {"type":"image_url",...}]`).
+#[derive(Debug, Clone, Deserialize)]
 pub struct LlmMessage {
     pub role: String,
     pub content: String,
+    #[serde(default)]
+    pub images: Vec<String>,
+}
+
+impl Serialize for LlmMessage {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if self.images.is_empty() {
+            let mut map = serializer.serialize_map(Some(2))?;
+            map.serialize_entry("role", &self.role)?;
+            map.serialize_entry("content", &self.content)?;
+            map.end()
+        } else {
+            let mut parts: Vec<serde_json::Value> = Vec::new();
+            if !self.content.is_empty() {
+                parts.push(serde_json::json!({"type": "text", "text": &self.content}));
+            }
+            for url in &self.images {
+                parts.push(serde_json::json!({"type": "image_url", "image_url": {"url": url}}));
+            }
+            let mut map = serializer.serialize_map(Some(2))?;
+            map.serialize_entry("role", &self.role)?;
+            map.serialize_entry("content", &parts)?;
+            map.end()
+        }
+    }
 }
 
 impl LlmMessage {
@@ -11,6 +43,7 @@ impl LlmMessage {
         Self {
             role: "system".into(),
             content: content.into(),
+            images: Vec::new(),
         }
     }
 
@@ -18,6 +51,15 @@ impl LlmMessage {
         Self {
             role: "user".into(),
             content: content.into(),
+            images: Vec::new(),
+        }
+    }
+
+    pub fn user_with_images(content: impl Into<String>, images: Vec<String>) -> Self {
+        Self {
+            role: "user".into(),
+            content: content.into(),
+            images,
         }
     }
 }

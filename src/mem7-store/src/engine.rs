@@ -16,6 +16,7 @@ use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
 use crate::pipeline;
+use crate::prompts::VISION_DESCRIBE_PROMPT;
 
 /// The core memory engine. Orchestrates the full add/search/get/update/delete/history pipeline.
 pub struct MemoryEngine {
@@ -193,6 +194,12 @@ impl MemoryEngine {
         run_id: Option<&str>,
         metadata: Option<&serde_json::Value>,
     ) -> Result<AddResult> {
+        let messages = if self.config.llm.enable_vision {
+            self.describe_images(messages).await?
+        } else {
+            messages.to_vec()
+        };
+
         let conversation = messages
             .iter()
             .map(|m| format!("{}: {}", m.role, m.content))
@@ -217,7 +224,7 @@ impl MemoryEngine {
         };
 
         let vector_future =
-            self.add_vector_with_inference(messages, user_id, agent_id, run_id, metadata, &filter);
+            self.add_vector_with_inference(&messages, user_id, agent_id, run_id, metadata, &filter);
 
         let (vector_result, graph_result) = tokio::join!(vector_future, graph_future);
 
@@ -411,6 +418,43 @@ impl MemoryEngine {
         Ok((results, ()))
     }
 
+    /// When `enable_vision` is set, send each message's images to the LLM and
+    /// append the resulting description to the message's text content.
+    async fn describe_images(&self, messages: &[ChatMessage]) -> Result<Vec<ChatMessage>> {
+        let mut out = Vec::with_capacity(messages.len());
+        for msg in messages {
+            if msg.images.is_empty() {
+                out.push(msg.clone());
+                continue;
+            }
+
+            let llm_msg = mem7_llm::LlmMessage::user_with_images(
+                VISION_DESCRIBE_PROMPT.to_string(),
+                msg.images.clone(),
+            );
+            match self.llm.chat_completion(&[llm_msg], None).await {
+                Ok(resp) => {
+                    let mut enriched = msg.clone();
+                    if enriched.content.is_empty() {
+                        enriched.content = resp.content;
+                    } else {
+                        enriched.content = format!(
+                            "{}\n[Image description: {}]",
+                            enriched.content, resp.content
+                        );
+                    }
+                    enriched.images.clear();
+                    out.push(enriched);
+                }
+                Err(e) => {
+                    warn!(error = %e, "vision description failed, using original text");
+                    out.push(msg.clone());
+                }
+            }
+        }
+        Ok(out)
+    }
+
     /// Extract entities and relations from conversation text, embed entity names,
     /// store them in the graph, then run conflict detection to soft-delete contradicted relations.
     async fn add_graph(
@@ -535,6 +579,7 @@ impl MemoryEngine {
         limit: usize,
         filters: Option<&serde_json::Value>,
         rerank: bool,
+        threshold: Option<f32>,
     ) -> Result<SearchResult> {
         let vecs = self.embedder.embed(&[query.to_string()]).await?;
         let query_vec = vecs.into_iter().next().unwrap_or_default();
@@ -580,7 +625,7 @@ impl MemoryEngine {
             Vec::new()
         });
 
-        let memories = if should_rerank && !results.is_empty() {
+        let memories: Vec<MemoryItem> = if should_rerank && !results.is_empty() {
             let reranker = self.reranker.as_ref().unwrap();
             let docs: Vec<RerankDocument> = results
                 .iter()
@@ -626,6 +671,15 @@ impl MemoryEngine {
                 .collect()
         };
 
+        let memories = if let Some(thresh) = threshold {
+            memories
+                .into_iter()
+                .filter(|m| m.score.unwrap_or(0.0) >= thresh)
+                .collect()
+        } else {
+            memories
+        };
+
         let relations = graph_results
             .into_iter()
             .map(|r| GraphRelation {
@@ -659,6 +713,7 @@ impl MemoryEngine {
         agent_id: Option<&str>,
         run_id: Option<&str>,
         filters: Option<&serde_json::Value>,
+        limit: Option<usize>,
     ) -> Result<Vec<MemoryItem>> {
         let filter = MemoryFilter {
             user_id: user_id.map(String::from),
@@ -667,7 +722,7 @@ impl MemoryEngine {
             metadata: filters.cloned(),
         };
 
-        let entries = self.vector_index.list(Some(&filter), None).await?;
+        let entries = self.vector_index.list(Some(&filter), limit).await?;
 
         Ok(entries
             .into_iter()

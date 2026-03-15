@@ -1,3 +1,9 @@
+/// Prompt used to describe an image when `enable_vision` is set.
+/// The LLM receives the image and returns a textual description that is
+/// inserted into the conversation in place of the raw image URL.
+pub const VISION_DESCRIBE_PROMPT: &str = "Describe the contents of this image in a single concise paragraph. \
+Focus on the key facts, objects, people, text, and any notable details visible in the image.";
+
 /// User-focused fact extraction prompt. Only extracts facts from user messages.
 pub const USER_FACT_EXTRACTION_PROMPT: &str = r#"You are a Personal Information Organizer, specialized in accurately storing facts, user memories, and preferences.
 Your primary role is to extract relevant pieces of information from conversations and organize them into distinct, manageable facts.

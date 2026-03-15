@@ -106,4 +106,8 @@ pub struct MemoryFilter {
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
+    /// Optional image URLs or base64 data URIs attached to this message.
+    /// When `enable_vision` is set, these are sent to the LLM for description.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub images: Vec<String>,
 }
