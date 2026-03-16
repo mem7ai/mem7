@@ -28,7 +28,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets
 
   test:
-    name: Test (${{ matrix.os }})
+    name: Rust Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
