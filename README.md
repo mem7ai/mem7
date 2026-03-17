@@ -39,6 +39,37 @@ Rust Core (tokio async runtime)
     └── mem7-store      — Pipeline orchestrator (MemoryEngine)
 ```
 
+### Write Path — `add()`
+
+```mermaid
+flowchart LR
+    A[Conversation] --> B["LLM: extract facts\n+ memory_type"]
+    A --> C["LLM: extract\ngraph relations"]
+    B --> D[Embed facts]
+    D --> E["Search existing\nmemories"]
+    E --> F["LLM: dedup\n(ADD / UPDATE / DELETE)"]
+    F --> G[(Vector Index)]
+    C --> H[(Graph Store)]
+    F --> I[(SQLite History)]
+```
+
+### Read Path — `search()`
+
+```mermaid
+flowchart LR
+    Q[Query] --> E[Embed query]
+    Q --> CL["LLM: classify\ntask_type"]
+    E --> V["Vector search"]
+    E --> G["Graph search"]
+    V --> RR["Rerank\n(optional)"]
+    RR --> DC["× decay"]
+    DC --> CT["× context_coeff\n(memory_type, task_type)"]
+    CL -.-> CT
+    G --> CT
+    CT --> TH["Threshold\nfilter"]
+    TH --> R[Ranked results]
+```
+
 ## Quick Start (Python — Sync)
 
 ```python
