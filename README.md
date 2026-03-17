@@ -397,7 +397,7 @@ Pure embedding similarity can conflate semantic closeness with contextual releva
 2. **Read path** — each search query is classified into a `task_type` (troubleshooting, design, factual_lookup, planning, general) via a lightweight LLM call that runs **in parallel** with embedding, adding zero sequential latency.
 3. A **context coefficient** is looked up from a `(memory_type, task_type)` weight matrix and multiplied into the score:
 
-$$\text{score}_{\text{final}} = \text{similarity} \times \text{decay} \times \text{context\_coeff}$$
+$$\text{score}_{\text{final}} = \text{similarity} \times \text{decay} \times \text{context coeff}$$
 
 ### Default Weight Matrix
 

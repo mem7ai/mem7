@@ -593,27 +593,35 @@ config = MemoryConfig(
         </div>
       </div>
 
-      <div class="decay-details-grid">
-        <div class="decay-detail-card">
-          <h4>The Chrome CDP Problem</h4>
-          <p><strong>Before:</strong> "Always investigate root cause first" (preference, score 0.92) appears when searching "fix Chrome CDP timeout" because both relate to debugging.</p>
-          <p><strong>After:</strong> With context scoring, the preference gets coefficient 0.3 for troubleshooting tasks, dropping to 0.276. Factual memories about Chrome CDP remain at full score.</p>
-        </div>
+      <div class="decay-details-grid" style="grid-template-columns:1fr 1fr;">
         <div class="decay-detail-card">
           <h4>Default Weight Matrix</h4>
-          <table style="width:100%;font-size:.85rem;margin-top:.5rem;">
-            <thead><tr><th></th><th>trouble&shy;shoot</th><th>design</th><th>factual</th><th>planning</th><th>general</th></tr></thead>
-            <tbody>
-              <tr><td><strong>factual</strong></td><td>1.0</td><td>0.5</td><td>1.0</td><td>0.7</td><td>1.0</td></tr>
-              <tr><td><strong>preference</strong></td><td>0.3</td><td>1.0</td><td>0.3</td><td>0.8</td><td>0.8</td></tr>
-              <tr><td><strong>procedural</strong></td><td>0.8</td><td>0.5</td><td>0.5</td><td>1.0</td><td>0.7</td></tr>
-              <tr><td><strong>episodic</strong></td><td>0.5</td><td>0.5</td><td>0.5</td><td>0.5</td><td>0.7</td></tr>
+          <p style="color:var(--muted);font-size:.85rem;margin-bottom:.75rem;">
+            Rows = memory type &nbsp;|&nbsp; Columns = task type &nbsp;|&nbsp; Values = context coefficient
+          </p>
+          <table style="width:100%;font-size:.9rem;border-collapse:separate;border-spacing:0;">
+            <thead>
+              <tr style="text-align:center;">
+                <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--border);"></th>
+                <th style="padding:.5rem .75rem;border-bottom:1px solid var(--border);">troubleshoot</th>
+                <th style="padding:.5rem .75rem;border-bottom:1px solid var(--border);">design</th>
+                <th style="padding:.5rem .75rem;border-bottom:1px solid var(--border);">factual</th>
+                <th style="padding:.5rem .75rem;border-bottom:1px solid var(--border);">planning</th>
+                <th style="padding:.5rem .75rem;border-bottom:1px solid var(--border);">general</th>
+              </tr>
+            </thead>
+            <tbody style="text-align:center;">
+              <tr><td style="text-align:left;padding:.45rem .75rem;"><strong>factual</strong></td><td style="padding:.45rem .75rem;color:var(--accent);">1.0</td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;color:var(--accent);">1.0</td><td style="padding:.45rem .75rem;">0.7</td><td style="padding:.45rem .75rem;color:var(--accent);">1.0</td></tr>
+              <tr><td style="text-align:left;padding:.45rem .75rem;"><strong>preference</strong></td><td style="padding:.45rem .75rem;opacity:.6;">0.3</td><td style="padding:.45rem .75rem;color:var(--accent);">1.0</td><td style="padding:.45rem .75rem;opacity:.6;">0.3</td><td style="padding:.45rem .75rem;">0.8</td><td style="padding:.45rem .75rem;">0.8</td></tr>
+              <tr><td style="text-align:left;padding:.45rem .75rem;"><strong>procedural</strong></td><td style="padding:.45rem .75rem;">0.8</td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;color:var(--accent);">1.0</td><td style="padding:.45rem .75rem;">0.7</td></tr>
+              <tr><td style="text-align:left;padding:.45rem .75rem;"><strong>episodic</strong></td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;">0.5</td><td style="padding:.45rem .75rem;">0.7</td></tr>
             </tbody>
           </table>
         </div>
         <div class="decay-detail-card">
           <h4>Zero Latency Overhead</h4>
-          <p>Query classification runs <strong>in parallel</strong> with embedding via <code>tokio::join!</code>, so it adds exactly zero milliseconds to the search path. Callers can also pass <code>task_type</code> directly to skip the LLM call entirely.</p>
+          <p>Query classification runs <strong>in parallel</strong> with embedding via <code>tokio::join!</code>, so it adds exactly zero milliseconds to the search path.</p>
+          <p style="margin-top:.75rem;">Callers can also pass <code>task_type</code> directly to skip the LLM call entirely.</p>
         </div>
       </div>
 
