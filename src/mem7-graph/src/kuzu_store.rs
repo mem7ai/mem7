@@ -239,6 +239,9 @@ impl GraphStore for KuzuGraphStore {
                         relationship,
                         destination,
                         score: None,
+                        created_at: None,
+                        mentions: None,
+                        last_accessed_at: None,
                     });
                 }
             }
@@ -339,6 +342,9 @@ impl GraphStore for KuzuGraphStore {
                                     relationship: rel,
                                     destination: dst,
                                     score: Some(*sim),
+                                    created_at: None,
+                                    mentions: None,
+                                    last_accessed_at: None,
                                 });
                             }
                         }
@@ -364,6 +370,9 @@ impl GraphStore for KuzuGraphStore {
                                     relationship: rel,
                                     destination: dst,
                                     score: Some(*sim),
+                                    created_at: None,
+                                    mentions: None,
+                                    last_accessed_at: None,
                                 });
                             }
                         }
@@ -418,6 +427,49 @@ impl GraphStore for KuzuGraphStore {
             }
 
             debug!(count = triples.len(), "kuzu: relations invalidated");
+            Ok(())
+        })
+        .await
+        .map_err(|e| Mem7Error::Graph(format!("spawn_blocking join error: {e}")))?
+    }
+
+    async fn rehearse_relations(
+        &self,
+        triples: &[(String, String, String)],
+        filter: &MemoryFilter,
+        now: &str,
+    ) -> Result<()> {
+        let db = self.db.clone();
+        let triples: Vec<(String, String, String)> = triples.to_vec();
+        let user_id = filter.user_id.clone();
+        let now = now.to_string();
+
+        tokio::task::spawn_blocking(move || {
+            let conn = kuzu::Connection::new(&db)
+                .map_err(|e| Mem7Error::Graph(format!("connection error: {e}")))?;
+
+            for (src, rel, dst) in &triples {
+                let mut where_clauses = vec![
+                    format!("r.relationship = '{}'", escape_cypher(rel)),
+                    "r.valid = true".to_string(),
+                ];
+                if let Some(uid) = &user_id {
+                    where_clauses.push(format!("r.user_id = '{}'", escape_cypher(uid)));
+                }
+                let where_str = where_clauses.join(" AND ");
+
+                let cypher = format!(
+                    "MATCH (s:Entity {{name: '{}'}})-[r:RELATES]->(d:Entity {{name: '{}'}}) \
+                     WHERE {where_str} \
+                     SET r.mentions = r.mentions + 1, r.last_accessed_at = '{}'",
+                    escape_cypher(src),
+                    escape_cypher(dst),
+                    escape_cypher(&now),
+                );
+                let _ = conn.query(&cypher);
+            }
+
+            debug!(count = triples.len(), "kuzu: relations rehearsed");
             Ok(())
         })
         .await

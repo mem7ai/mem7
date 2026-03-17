@@ -35,11 +35,22 @@ class HistoryConfig(BaseModel):
     db_path: str = "mem7_history.db"
 
 
+class DecayConfig(BaseModel):
+    """Ebbinghaus-inspired forgetting curve configuration."""
+
+    enabled: bool = False
+    base_half_life_secs: float = 604800.0  # 7 days
+    decay_shape: float = 0.8
+    min_retention: float = 0.1
+    rehearsal_factor: float = 0.5
+
+
 class MemoryConfig(BaseModel):
     llm: LlmConfig = Field(default_factory=LlmConfig)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     vector: VectorConfig = Field(default_factory=VectorConfig)
     history: HistoryConfig = Field(default_factory=HistoryConfig)
+    decay: Optional[DecayConfig] = None
     custom_fact_extraction_prompt: Optional[str] = None
     custom_update_memory_prompt: Optional[str] = None
 

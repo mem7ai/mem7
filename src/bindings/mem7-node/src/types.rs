@@ -31,6 +31,8 @@ pub struct JsMemoryItem {
     pub created_at: String,
     pub updated_at: String,
     pub score: Option<f64>,
+    pub last_accessed_at: Option<String>,
+    pub access_count: u32,
 }
 
 impl From<MemoryItem> for JsMemoryItem {
@@ -45,6 +47,8 @@ impl From<MemoryItem> for JsMemoryItem {
             created_at: m.created_at,
             updated_at: m.updated_at,
             score: m.score.map(|s| s as f64),
+            last_accessed_at: m.last_accessed_at,
+            access_count: m.access_count,
         }
     }
 }
@@ -92,6 +96,7 @@ pub struct JsGraphRelation {
     pub source: String,
     pub relationship: String,
     pub destination: String,
+    pub score: Option<f64>,
 }
 
 impl From<GraphRelation> for JsGraphRelation {
@@ -100,6 +105,7 @@ impl From<GraphRelation> for JsGraphRelation {
             source: r.source,
             relationship: r.relationship,
             destination: r.destination,
+            score: r.score.map(|s| s as f64),
         }
     }
 }

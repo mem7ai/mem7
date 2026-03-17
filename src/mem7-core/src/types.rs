@@ -13,6 +13,12 @@ pub struct MemoryItem {
     pub created_at: String,
     pub updated_at: String,
     pub score: Option<f32>,
+    /// Last time this memory was accessed (written or retrieved).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_accessed_at: Option<String>,
+    /// Number of times this memory has been retrieved (rehearsal count).
+    #[serde(default)]
+    pub access_count: u32,
 }
 
 /// A fact extracted by the LLM from a conversation.
@@ -68,6 +74,8 @@ pub struct GraphRelation {
     pub source: String,
     pub relationship: String,
     pub destination: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub score: Option<f32>,
 }
 
 /// Aggregated result of a full add() call.

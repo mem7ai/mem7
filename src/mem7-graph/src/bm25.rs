@@ -85,6 +85,9 @@ mod tests {
             relationship: rel.into(),
             destination: dst.into(),
             score: None,
+            created_at: None,
+            mentions: None,
+            last_accessed_at: None,
         }
     }
 

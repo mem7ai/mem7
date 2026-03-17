@@ -1,8 +1,23 @@
 document.addEventListener("DOMContentLoaded", () => {
   setupTabs(".install-tab", "data-install", ".install-panel", "data-install-panel");
   setupTabs(".code-tab", "data-lang", ".code-panel", "data-lang-panel");
+  setupTabs("[data-decay]", "data-decay", "[data-decay-panel]", "data-decay-panel");
   setupCopyButtons();
+  renderKatex();
 });
+
+function renderKatex() {
+  if (typeof katex === "undefined") {
+    setTimeout(renderKatex, 100);
+    return;
+  }
+  document.querySelectorAll("[data-katex]").forEach((el) => {
+    katex.render(el.getAttribute("data-katex"), el, {
+      displayMode: true,
+      throwOnError: false,
+    });
+  });
+}
 
 function setupTabs(tabSelector, tabAttr, panelSelector, panelAttr) {
   const tabs = document.querySelectorAll(tabSelector);

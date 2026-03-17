@@ -23,6 +23,8 @@ pub struct PyMemoryItem {
     pub created_at: String,
     pub updated_at: String,
     pub score: Option<f32>,
+    pub last_accessed_at: Option<String>,
+    pub access_count: u32,
 }
 
 #[pymethods]
@@ -44,6 +46,8 @@ impl From<MemoryItem> for PyMemoryItem {
             created_at: m.created_at,
             updated_at: m.updated_at,
             score: m.score,
+            last_accessed_at: m.last_accessed_at,
+            access_count: m.access_count,
         }
     }
 }
@@ -84,6 +88,7 @@ pub struct PyGraphRelation {
     pub source: String,
     pub relationship: String,
     pub destination: String,
+    pub score: Option<f32>,
 }
 
 #[pymethods]
@@ -102,6 +107,7 @@ impl From<GraphRelation> for PyGraphRelation {
             source: r.source,
             relationship: r.relationship,
             destination: r.destination,
+            score: r.score,
         }
     }
 }

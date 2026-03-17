@@ -1,3 +1,4 @@
+pub mod decay;
 mod engine;
 mod pipeline;
 mod prompts;

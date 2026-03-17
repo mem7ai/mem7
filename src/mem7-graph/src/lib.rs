@@ -60,6 +60,15 @@ pub trait GraphStore: Send + Sync {
         filter: &MemoryFilter,
     ) -> Result<()>;
 
+    /// Strengthen relations by updating `last_accessed_at` and incrementing
+    /// `mentions`. Called asynchronously after successful search retrieval.
+    async fn rehearse_relations(
+        &self,
+        triples: &[(String, String, String)],
+        filter: &MemoryFilter,
+        now: &str,
+    ) -> Result<()>;
+
     /// Delete all relations matching the filter.
     async fn delete_all(&self, filter: &MemoryFilter) -> Result<()>;
 

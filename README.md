@@ -104,96 +104,108 @@ mem7 uses a single **OpenAI-compatible client** for both LLM and Embedding, whic
 
 ### LLMs
 
-| Provider | mem0 | mem7 | Notes |
-|----------|:----:|:----:|-------|
-| OpenAI | :white_check_mark: | :white_check_mark: | Native support |
-| Ollama | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| vLLM | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| Groq | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| Together | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| DeepSeek | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| xAI (Grok) | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| LM Studio | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| Azure OpenAI | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| Anthropic | :white_check_mark: | :x: | Requires native SDK |
-| Gemini | :white_check_mark: | :x: | Requires native SDK |
-| Vertex AI | :white_check_mark: | :x: | Requires native SDK |
-| AWS Bedrock | :white_check_mark: | :x: | Requires native SDK |
-| LiteLLM | :white_check_mark: | :x: | Python proxy |
-| Sarvam | :white_check_mark: | :x: | Requires native SDK |
-| LangChain | :white_check_mark: | :x: | Python framework |
+
+| Provider     | Status             | Notes                     |
+| ------------ | ------------------ | ------------------------- |
+| OpenAI       | :white_check_mark: | Native support            |
+| Ollama       | :white_check_mark: | Via OpenAI-compatible API |
+| vLLM         | :white_check_mark: | Via OpenAI-compatible API |
+| Groq         | :white_check_mark: | Via OpenAI-compatible API |
+| Together     | :white_check_mark: | Via OpenAI-compatible API |
+| DeepSeek     | :white_check_mark: | Via OpenAI-compatible API |
+| xAI (Grok)   | :white_check_mark: | Via OpenAI-compatible API |
+| LM Studio    | :white_check_mark: | Via OpenAI-compatible API |
+| Azure OpenAI | :white_check_mark: | Via OpenAI-compatible API |
+| Anthropic    | :x:                | Requires native SDK       |
+| Gemini       | :x:                | Requires native SDK       |
+| Vertex AI    | :x:                | Requires native SDK       |
+| AWS Bedrock  | :x:                | Requires native SDK       |
+| LiteLLM      | :x:                | Python proxy              |
+| Sarvam       | :x:                | Requires native SDK       |
+| LangChain    | :x:                | Python framework          |
+
 
 ### Embeddings
 
-| Provider | mem0 | mem7 | Notes |
-|----------|:----:|:----:|-------|
-| OpenAI | :white_check_mark: | :white_check_mark: | Native support |
-| Ollama | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| Together | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| LM Studio | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| Azure OpenAI | :white_check_mark: | :white_check_mark: | Via OpenAI-compatible API |
-| FastEmbed | :white_check_mark: | :white_check_mark: | Local ONNX inference (feature flag `fastembed`) |
-| Hugging Face | :white_check_mark: | :x: | Requires native SDK |
-| Gemini | :white_check_mark: | :x: | Requires native SDK |
-| Vertex AI | :white_check_mark: | :x: | Requires native SDK |
-| AWS Bedrock | :white_check_mark: | :x: | Requires native SDK |
-| LangChain | :white_check_mark: | :x: | Python framework |
+
+| Provider     | Status             | Notes                                           |
+| ------------ | ------------------ | ----------------------------------------------- |
+| OpenAI       | :white_check_mark: | Native support                                  |
+| Ollama       | :white_check_mark: | Via OpenAI-compatible API                       |
+| Together     | :white_check_mark: | Via OpenAI-compatible API                       |
+| LM Studio    | :white_check_mark: | Via OpenAI-compatible API                       |
+| Azure OpenAI | :white_check_mark: | Via OpenAI-compatible API                       |
+| FastEmbed    | :white_check_mark: | Local ONNX inference (feature flag `fastembed`) |
+| Hugging Face | :x:                | Requires native SDK                             |
+| Gemini       | :x:                | Requires native SDK                             |
+| Vertex AI    | :x:                | Requires native SDK                             |
+| AWS Bedrock  | :x:                | Requires native SDK                             |
+| LangChain    | :x:                | Python framework                                |
+
 
 ### Vector Stores
 
-| Provider | mem0 | mem7 | Notes |
-|----------|:----:|:----:|-------|
-| In-memory (FlatIndex) | — | :white_check_mark: | Built-in, good for dev |
-| Upstash Vector | :white_check_mark: | :white_check_mark: | REST API, serverless |
-| Qdrant | :white_check_mark: | :x: | |
-| Chroma | :white_check_mark: | :x: | |
-| pgvector | :white_check_mark: | :x: | |
-| Milvus | :white_check_mark: | :x: | |
-| Pinecone | :white_check_mark: | :x: | |
-| Redis | :white_check_mark: | :x: | |
-| Weaviate | :white_check_mark: | :x: | |
-| Elasticsearch | :white_check_mark: | :x: | |
-| OpenSearch | :white_check_mark: | :x: | |
-| FAISS | :white_check_mark: | :x: | |
-| MongoDB | :white_check_mark: | :x: | |
-| Supabase | :white_check_mark: | :x: | |
-| Azure AI Search | :white_check_mark: | :x: | |
-| Vertex AI Vector Search | :white_check_mark: | :x: | |
-| Databricks | :white_check_mark: | :x: | |
-| Cassandra | :white_check_mark: | :x: | |
-| S3 Vectors | :white_check_mark: | :x: | |
-| Baidu | :white_check_mark: | :x: | |
-| Neptune | :white_check_mark: | :x: | |
-| Valkey | :white_check_mark: | :x: | |
-| LangChain | :white_check_mark: | :x: | |
+
+| Provider                | Status             | Notes                  |
+| ----------------------- | ------------------ | ---------------------- |
+| In-memory (FlatIndex)   | :white_check_mark: | Built-in, good for dev |
+| Upstash Vector          | :white_check_mark: | REST API, serverless   |
+| Qdrant                  | :x:                |                        |
+| Chroma                  | :x:                |                        |
+| pgvector                | :x:                |                        |
+| Milvus                  | :x:                |                        |
+| Pinecone                | :x:                |                        |
+| Redis                   | :x:                |                        |
+| Weaviate                | :x:                |                        |
+| Elasticsearch           | :x:                |                        |
+| OpenSearch              | :x:                |                        |
+| FAISS                   | :x:                |                        |
+| MongoDB                 | :x:                |                        |
+| Supabase                | :x:                |                        |
+| Azure AI Search         | :x:                |                        |
+| Vertex AI Vector Search | :x:                |                        |
+| Databricks              | :x:                |                        |
+| Cassandra               | :x:                |                        |
+| S3 Vectors              | :x:                |                        |
+| Baidu                   | :x:                |                        |
+| Neptune                 | :x:                |                        |
+| Valkey                  | :x:                |                        |
+| LangChain               | :x:                |                        |
+
 
 ### Rerankers
 
-| Provider | mem0 | mem7 | Notes |
-|----------|:----:|:----:|-------|
-| Cohere | :white_check_mark: | :white_check_mark: | Cohere v2 rerank API |
-| LLM-based | :white_check_mark: | :white_check_mark: | Any OpenAI-compatible LLM |
-| Jina AI | :white_check_mark: | :x: | Planned |
-| Cross-encoder | :white_check_mark: | :x: | Planned |
+
+| Provider      | Status             | Notes                     |
+| ------------- | ------------------ | ------------------------- |
+| Cohere        | :white_check_mark: | Cohere v2 rerank API      |
+| LLM-based     | :white_check_mark: | Any OpenAI-compatible LLM |
+| Jina AI       | :x:                | Planned                   |
+| Cross-encoder | :x:                | Planned                   |
+
 
 ### Graph Stores
 
-| Provider | mem0 | mem7 | Notes |
-|----------|:----:|:----:|-------|
-| In-memory (FlatGraph) | — | :white_check_mark: | Built-in, good for dev/testing |
-| Kuzu (embedded) | :white_check_mark: | :white_check_mark: | Cypher-based, no server needed (feature flag `kuzu`) |
-| Neo4j | :white_check_mark: | :white_check_mark: | Production-grade, Bolt protocol |
-| Memgraph | :white_check_mark: | :x: | Planned |
-| Amazon Neptune | :white_check_mark: | :x: | Planned |
+
+| Provider              | Status             | Notes                                                |
+| --------------------- | ------------------ | ---------------------------------------------------- |
+| In-memory (FlatGraph) | :white_check_mark: | Built-in, good for dev/testing                       |
+| Kuzu (embedded)       | :white_check_mark: | Cypher-based, no server needed (feature flag `kuzu`) |
+| Neo4j                 | :white_check_mark: | Production-grade, Bolt protocol                      |
+| Memgraph              | :x:                | Planned                                              |
+| Amazon Neptune        | :x:                | Planned                                              |
+
 
 ### Language Bindings
 
-| Language | Status |
-|----------|--------|
-| Python (sync + async) | :white_check_mark: PyPI: `pip install mem7` |
-| TypeScript / Node.js | :white_check_mark: npm: `npm install @mem7ai/mem7` |
-| Rust | :white_check_mark: crates.io: `cargo add mem7` |
-| Go | Planned |
+
+| Language              | Status                                             |
+| --------------------- | -------------------------------------------------- |
+| Python (sync + async) | :white_check_mark: PyPI: `pip install mem7`        |
+| TypeScript / Node.js  | :white_check_mark: npm: `npm install @mem7ai/mem7` |
+| Rust                  | :white_check_mark: crates.io: `cargo add mem7`     |
+| Go                    | Planned                                            |
+
 
 ## Vector Store Backends
 
@@ -298,6 +310,74 @@ GraphConfig(
 )
 ```
 
+## Memory Decay (Forgetting Curve)
+
+mem7 implements an Ebbinghaus-inspired **forgetting curve** that deprioritizes stale memories over time while automatically strengthening memories that are frequently recalled — just like human memory.
+
+When enabled, every memory carries two extra metadata fields: `last_accessed_at` (the last time it was written or retrieved) and `access_count` (how many times it has been retrieved). These are used to compute a **retention score** that modulates the raw similarity score during search and dedup:
+
+```
+stability  = S0 * (1 + alpha * ln(1 + access_count))
+retention  = exp(-((age / stability) ^ gamma))
+effective  = floor + (1 - floor) * retention
+final_score = raw_similarity * effective
+```
+
+- **Decay over time**: memories you haven't touched in weeks get deprioritized, but never disappear (the `floor` parameter ensures a minimum retention of 10% by default).
+- **Rehearsal strengthening**: each time a memory is successfully retrieved via `search()`, its `access_count` is incremented and `last_accessed_at` is reset asynchronously — making it harder to forget next time.
+- **Cue-dependent retrieval**: a highly relevant query naturally "wakes up" old memories because `raw_similarity` is high, even if the retention score is low. No separate sigmoid gate is needed — the multiplicative structure handles it.
+- **Write-path aware**: decay is also applied during the dedup phase of `add()`, so stale memories appear less "close" to new facts and are more likely to be updated or replaced.
+
+### Enabling Decay
+
+Decay is **off by default**. Enable it via config:
+
+**Python:**
+
+```python
+from mem7.config import MemoryConfig, DecayConfig
+
+config = MemoryConfig(
+    # ... llm, embedding, etc.
+    decay=DecayConfig(enabled=True),
+)
+```
+
+**TypeScript:**
+
+```typescript
+const engine = await MemoryEngine.create(JSON.stringify({
+  // ... llm, embedding, etc.
+  decay: { enabled: true },
+}));
+```
+
+**Rust:**
+
+```rust
+use mem7_config::{MemoryEngineConfig, DecayConfig};
+
+let config = MemoryEngineConfig {
+    decay: Some(DecayConfig { enabled: true, ..Default::default() }),
+    ..Default::default()
+};
+```
+
+### Tuning Parameters
+
+| Parameter             | Default    | Description                                                       |
+| --------------------- | ---------- | ----------------------------------------------------------------- |
+| `base_half_life_secs` | `604800.0` | Base stability in seconds (7 days) before any rehearsal bonus     |
+| `decay_shape`         | `0.8`      | Stretched-exponential shape (0 < gamma <= 1); lower = slower initial decay |
+| `min_retention`       | `0.1`      | Floor so no memory fully vanishes                                 |
+| `rehearsal_factor`    | `0.5`      | How much each retrieval increases stability                       |
+
+### Backward Compatibility
+
+- Old memories without `last_accessed_at` or `access_count` gracefully degrade: age falls back to `updated_at` then `created_at`, and access count defaults to 0.
+- No migration needed — new fields are written on the next `add()` or `update()` call.
+- When decay is disabled (the default), scoring behavior is identical to previous versions.
+
 ## Observability (OpenTelemetry)
 
 mem7 integrates with [OpenTelemetry](https://opentelemetry.io/) via `tracing-opentelemetry`. When enabled, every `add()`, `search()`, `get()`, `update()`, `delete()` call emits a trace span that is exported via OTLP/gRPC to any compatible collector (Jaeger, Grafana Tempo, Datadog, etc.).
@@ -342,9 +422,10 @@ telemetry::shutdown();
 
 ## Examples
 
-See the [`examples/`](examples/) directory:
-- [`mem7_demo.ipynb`](examples/mem7_demo.ipynb) — Python notebook demo
-- [`mem7_demo.ts`](examples/mem7_demo.ts) — TypeScript demo
+See the `[examples/](examples/)` directory:
+
+- `[mem7_demo.ipynb](examples/mem7_demo.ipynb)` — Python notebook demo
+- `[mem7_demo.ts](examples/mem7_demo.ts)` — TypeScript demo
 
 ## Development
 

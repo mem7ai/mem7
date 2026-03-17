@@ -174,6 +174,9 @@ impl GraphStore for Neo4jGraphStore {
                 relationship,
                 destination,
                 score: None,
+                created_at: None,
+                mentions: None,
+                last_accessed_at: None,
             });
         }
 
@@ -198,13 +201,15 @@ impl GraphStore for Neo4jGraphStore {
             CALL { \
                 WITH n \
                 MATCH (n)-[r:RELATES]->(m:Entity) WHERE r.valid = true \
-                RETURN n.name AS source, r.relationship AS relationship, m.name AS destination, similarity \
+                RETURN n.name AS source, r.relationship AS relationship, m.name AS destination, similarity, \
+                       r.created_at AS rel_created_at, r.mentions AS rel_mentions, r.last_accessed_at AS rel_last_accessed \
                 UNION \
                 WITH n, similarity \
                 MATCH (n)<-[r:RELATES]-(m:Entity) WHERE r.valid = true \
-                RETURN m.name AS source, r.relationship AS relationship, n.name AS destination, similarity \
+                RETURN m.name AS source, r.relationship AS relationship, n.name AS destination, similarity, \
+                       r.created_at AS rel_created_at, r.mentions AS rel_mentions, r.last_accessed_at AS rel_last_accessed \
             } \
-            RETURN DISTINCT source, relationship, destination, similarity \
+            RETURN DISTINCT source, relationship, destination, similarity, rel_created_at, rel_mentions, rel_last_accessed \
             ORDER BY similarity DESC \
             LIMIT $limit";
 
@@ -227,12 +232,18 @@ impl GraphStore for Neo4jGraphStore {
             let relationship: String = row.get("relationship").unwrap_or_default();
             let destination: String = row.get("destination").unwrap_or_default();
             let similarity: f64 = row.get("similarity").unwrap_or_default();
+            let rel_created_at: Option<i64> = row.get("rel_created_at").ok();
+            let rel_mentions: Option<i64> = row.get("rel_mentions").ok();
+            let rel_last_accessed: Option<String> = row.get("rel_last_accessed").ok();
 
             results.push(GraphSearchResult {
                 source,
                 relationship,
                 destination,
                 score: Some(similarity as f32),
+                created_at: rel_created_at.map(|ts| format!("{ts}")),
+                mentions: rel_mentions.map(|m| m as u32),
+                last_accessed_at: rel_last_accessed,
             });
         }
 
@@ -263,6 +274,34 @@ impl GraphStore for Neo4jGraphStore {
         }
 
         debug!(count = triples.len(), "neo4j: relations invalidated");
+        Ok(())
+    }
+
+    async fn rehearse_relations(
+        &self,
+        triples: &[(String, String, String)],
+        filter: &MemoryFilter,
+        now: &str,
+    ) -> Result<()> {
+        for (src, rel, dst) in triples {
+            let q = query(
+                "MATCH (s:Entity {name: $src})-[r:RELATES {relationship: $rel}]->(d:Entity {name: $dst}) \
+                 WHERE r.valid = true AND ($user_id = '' OR r.user_id = $user_id) \
+                 SET r.mentions = r.mentions + 1, r.last_accessed_at = $now",
+            )
+            .param("src", src.as_str())
+            .param("rel", rel.as_str())
+            .param("dst", dst.as_str())
+            .param("user_id", filter.user_id.as_deref().unwrap_or(""))
+            .param("now", now);
+
+            self.graph
+                .run(q)
+                .await
+                .map_err(|e| Mem7Error::Graph(format!("rehearse relation error: {e}")))?;
+        }
+
+        debug!(count = triples.len(), "neo4j: relations rehearsed");
         Ok(())
     }
 

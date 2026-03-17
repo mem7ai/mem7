@@ -15,6 +15,7 @@ use mem7_vector::{VectorIndex, VectorSearchResult};
 use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
+use crate::decay;
 use crate::pipeline;
 use crate::prompts::VISION_DESCRIBE_PROMPT;
 
@@ -139,6 +140,8 @@ impl MemoryEngine {
                 "run_id": run_id,
                 "created_at": now,
                 "updated_at": now,
+                "last_accessed_at": now,
+                "access_count": 0,
             });
             if let Some(meta) = metadata {
                 payload["metadata"] = meta.clone();
@@ -271,11 +274,21 @@ impl MemoryEngine {
 
         let mut all_retrieved: Vec<(Uuid, String, f32)> = Vec::new();
 
+        let decay_cfg = self.config.decay.as_ref().filter(|d| d.enabled);
+
         for embedding in &embeddings {
             let results = self.vector_index.search(embedding, 5, Some(filter)).await?;
             for VectorSearchResult { id, score, payload } in results {
                 if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
-                    all_retrieved.push((id, text.to_string(), score));
+                    let effective_score = match decay_cfg {
+                        Some(cfg) => {
+                            let age = decay::age_from_payload(&payload);
+                            let ac = decay::access_count_from_payload(&payload);
+                            decay::apply_decay(score, age, ac, cfg)
+                        }
+                        None => score,
+                    };
+                    all_retrieved.push((id, text.to_string(), effective_score));
                 }
             }
         }
@@ -307,6 +320,8 @@ impl MemoryEngine {
                         "run_id": run_id,
                         "created_at": now,
                         "updated_at": now,
+                        "last_accessed_at": now,
+                        "access_count": 0,
                     });
                     if let Some(meta) = metadata {
                         payload["metadata"] = meta.clone();
@@ -333,12 +348,23 @@ impl MemoryEngine {
                         let vecs = self.embedder.embed(std::slice::from_ref(text)).await?;
                         let vec = vecs.into_iter().next().unwrap_or_default();
 
+                        let prev_ac = self
+                            .vector_index
+                            .get(&real_id)
+                            .await
+                            .ok()
+                            .flatten()
+                            .map(|(_, p)| decay::access_count_from_payload(&p))
+                            .unwrap_or(0);
+
                         let mut payload = serde_json::json!({
                             "text": text,
                             "user_id": user_id,
                             "agent_id": agent_id,
                             "run_id": run_id,
                             "updated_at": now,
+                            "last_accessed_at": now,
+                            "access_count": prev_ac + 1,
                         });
                         if let Some(meta) = metadata {
                             payload["metadata"] = meta.clone();
@@ -556,6 +582,7 @@ impl MemoryEngine {
                 source: r.source,
                 relationship: r.relationship,
                 destination: r.destination,
+                score: None,
             })
             .collect())
     }
@@ -671,23 +698,93 @@ impl MemoryEngine {
                 .collect()
         };
 
-        let memories = if let Some(thresh) = threshold {
-            memories
+        let mut memories = if let Some(decay_cfg) = self.config.decay.as_ref().filter(|d| d.enabled)
+        {
+            let mut decayed: Vec<MemoryItem> = memories
                 .into_iter()
-                .filter(|m| m.score.unwrap_or(0.0) >= thresh)
-                .collect()
+                .map(|mut item| {
+                    let age = decay::age_from_memory_item(
+                        item.last_accessed_at.as_deref(),
+                        &item.updated_at,
+                        &item.created_at,
+                    );
+                    item.score = item
+                        .score
+                        .map(|s| decay::apply_decay(s, age, item.access_count, decay_cfg));
+                    item
+                })
+                .collect();
+            decayed.sort_by(|a, b| {
+                b.score
+                    .partial_cmp(&a.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            decayed
         } else {
             memories
         };
 
-        let relations = graph_results
+        if let Some(thresh) = threshold {
+            memories.retain(|m| m.score.unwrap_or(0.0) >= thresh);
+        }
+
+        let relations: Vec<GraphRelation> = graph_results
             .into_iter()
             .map(|r| GraphRelation {
                 source: r.source,
                 relationship: r.relationship,
                 destination: r.destination,
+                score: r.score,
             })
             .collect();
+
+        // Async rehearsal: strengthen retrieved memories and relations
+        if self.config.decay.as_ref().is_some_and(|d| d.enabled)
+            && (!memories.is_empty() || !relations.is_empty())
+        {
+            let vi = self.vector_index.clone();
+            let graph = self.graph.clone();
+            let mem_ids: Vec<Uuid> = memories.iter().map(|m| m.id).collect();
+            let rel_triples: Vec<(String, String, String)> = relations
+                .iter()
+                .map(|r| {
+                    (
+                        r.source.clone(),
+                        r.relationship.clone(),
+                        r.destination.clone(),
+                    )
+                })
+                .collect();
+            let rehearsal_filter = MemoryFilter {
+                user_id: user_id.map(String::from),
+                agent_id: agent_id.map(String::from),
+                run_id: run_id.map(String::from),
+                metadata: None,
+            };
+
+            tokio::spawn(async move {
+                let now = chrono_now();
+                for mid in mem_ids {
+                    if let Ok(Some((_, payload))) = vi.get(&mid).await {
+                        let ac = payload
+                            .get("access_count")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(0);
+                        let mut p = payload;
+                        p["last_accessed_at"] = serde_json::Value::String(now.clone());
+                        p["access_count"] = serde_json::json!(ac + 1);
+                        let _ = vi.update(&mid, None, Some(p)).await;
+                    }
+                }
+                if let Some(g) = graph
+                    && !rel_triples.is_empty()
+                {
+                    let _ = g
+                        .rehearse_relations(&rel_triples, &rehearsal_filter, &now)
+                        .await;
+                }
+            });
+        }
 
         Ok(SearchResult {
             memories,
@@ -887,8 +984,25 @@ impl MemoryEngine {
             return Ok(Vec::new());
         }
 
-        let reranked = mem7_graph::bm25::rerank(&all_results, query, limit);
+        let mut reranked = mem7_graph::bm25::rerank(&all_results, query, limit);
         debug!(count = reranked.len(), "graph search: BM25 reranked");
+
+        if let Some(decay_cfg) = self.config.decay.as_ref().filter(|d| d.enabled) {
+            for r in &mut reranked {
+                let age = decay::age_from_option(
+                    r.last_accessed_at.as_deref().or(r.created_at.as_deref()),
+                );
+                let ac = r.mentions.unwrap_or(0);
+                r.score = r.score.map(|s| decay::apply_decay(s, age, ac, decay_cfg));
+            }
+            reranked.sort_by(|a, b| {
+                b.score
+                    .unwrap_or(0.0)
+                    .partial_cmp(&a.score.unwrap_or(0.0))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            reranked.truncate(limit);
+        }
 
         Ok(reranked)
     }
@@ -929,6 +1043,14 @@ fn payload_to_memory_item(id: Uuid, payload: &serde_json::Value, score: Option<f
             .unwrap_or("")
             .to_string(),
         score,
+        last_accessed_at: payload
+            .get("last_accessed_at")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        access_count: payload
+            .get("access_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32,
     }
 }
 

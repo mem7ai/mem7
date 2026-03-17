@@ -213,6 +213,59 @@ impl Default for TelemetryConfig {
     }
 }
 
+/// Configuration for the Ebbinghaus-inspired memory decay / forgetting curve.
+///
+/// When enabled, older memories are deprioritized during search and dedup via a
+/// stretched-exponential retention factor. Memories that are accessed frequently
+/// decay more slowly (spaced-repetition effect).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecayConfig {
+    /// Master switch. When `false` (the default), all scoring is unmodified.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Base half-life in seconds before any rehearsal bonus. Default: 7 days.
+    #[serde(default = "default_base_half_life")]
+    pub base_half_life_secs: f64,
+    /// Stretched-exponential shape parameter (0 < gamma <= 1).
+    /// Lower values produce slower initial decay with a steeper tail.
+    #[serde(default = "default_decay_shape")]
+    pub decay_shape: f64,
+    /// Minimum retention floor so no memory ever fully vanishes.
+    #[serde(default = "default_min_retention")]
+    pub min_retention: f64,
+    /// How much each access (rehearsal) increases memory stability.
+    #[serde(default = "default_rehearsal_factor")]
+    pub rehearsal_factor: f64,
+}
+
+fn default_base_half_life() -> f64 {
+    604800.0 // 7 days
+}
+
+fn default_decay_shape() -> f64 {
+    0.8
+}
+
+fn default_min_retention() -> f64 {
+    0.1
+}
+
+fn default_rehearsal_factor() -> f64 {
+    0.5
+}
+
+impl Default for DecayConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            base_half_life_secs: default_base_half_life(),
+            decay_shape: default_decay_shape(),
+            min_retention: default_min_retention(),
+            rehearsal_factor: default_rehearsal_factor(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryEngineConfig {
     #[serde(default)]
@@ -226,6 +279,7 @@ pub struct MemoryEngineConfig {
     pub reranker: Option<RerankerConfig>,
     pub graph: Option<GraphConfig>,
     pub telemetry: Option<TelemetryConfig>,
+    pub decay: Option<DecayConfig>,
     pub custom_fact_extraction_prompt: Option<String>,
     pub custom_update_memory_prompt: Option<String>,
 }

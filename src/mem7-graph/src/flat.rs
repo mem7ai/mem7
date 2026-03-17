@@ -15,6 +15,8 @@ struct StoredEntity {
     #[allow(dead_code)]
     created_at: Option<String>,
     mentions: u32,
+    #[allow(dead_code)]
+    last_accessed_at: Option<String>,
     user_id: Option<String>,
     agent_id: Option<String>,
     run_id: Option<String>,
@@ -25,10 +27,10 @@ struct StoredRelation {
     source: String,
     relationship: String,
     destination: String,
-    #[allow(dead_code)]
     created_at: Option<String>,
     mentions: u32,
     valid: bool,
+    last_accessed_at: Option<String>,
     user_id: Option<String>,
     agent_id: Option<String>,
     run_id: Option<String>,
@@ -109,6 +111,7 @@ impl GraphStore for FlatGraph {
                     embedding: entity.embedding.clone(),
                     created_at: entity.created_at.clone(),
                     mentions: 1,
+                    last_accessed_at: entity.created_at.clone(),
                     user_id: filter.user_id.clone(),
                     agent_id: filter.agent_id.clone(),
                     run_id: filter.run_id.clone(),
@@ -144,6 +147,7 @@ impl GraphStore for FlatGraph {
                     created_at: r.created_at.clone(),
                     mentions: 1,
                     valid: true,
+                    last_accessed_at: r.created_at.clone(),
                     user_id: filter.user_id.clone(),
                     agent_id: filter.agent_id.clone(),
                     run_id: filter.run_id.clone(),
@@ -177,6 +181,9 @@ impl GraphStore for FlatGraph {
                 relationship: r.relationship.clone(),
                 destination: r.destination.clone(),
                 score: None,
+                created_at: r.created_at.clone(),
+                mentions: Some(r.mentions),
+                last_accessed_at: r.last_accessed_at.clone(),
             })
             .collect();
 
@@ -231,6 +238,9 @@ impl GraphStore for FlatGraph {
                             relationship: r.relationship.clone(),
                             destination: r.destination.clone(),
                             score: Some(*sim),
+                            created_at: r.created_at.clone(),
+                            mentions: Some(r.mentions),
+                            last_accessed_at: r.last_accessed_at.clone(),
                         });
                     }
                 }
@@ -261,6 +271,27 @@ impl GraphStore for FlatGraph {
             for (src, rel, dst) in triples {
                 if r.source == *src && r.relationship == *rel && r.destination == *dst && r.valid {
                     r.valid = false;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn rehearse_relations(
+        &self,
+        triples: &[(String, String, String)],
+        filter: &MemoryFilter,
+        now: &str,
+    ) -> Result<()> {
+        let mut store = self.relations.write().unwrap();
+        for r in store.iter_mut() {
+            if !r.valid || !matches_filter(&r.user_id, &r.agent_id, &r.run_id, filter) {
+                continue;
+            }
+            for (src, rel, dst) in triples {
+                if r.source == *src && r.relationship == *rel && r.destination == *dst {
+                    r.mentions += 1;
+                    r.last_accessed_at = Some(now.to_string());
                 }
             }
         }
