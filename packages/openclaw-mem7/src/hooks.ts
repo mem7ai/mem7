@@ -1,9 +1,7 @@
 import type { OpenClawPluginApi, PluginConfig } from "./config.js";
 import { resolveUserId } from "./config.js";
 import { formatRecallContext } from "./format.js";
-import type { MemoryEngine } from "@mem7ai/mem7";
-
-type EngineGetter = () => MemoryEngine | null;
+import type { EngineGetter } from "./engine.js";
 
 interface ChatMessage {
   role: string;
@@ -81,7 +79,7 @@ export function registerHooks(
             null
           );
 
-          const context = formatRecallContext(result as any);
+          const context = formatRecallContext(result);
           if (context) {
             return { prependSystemContext: context };
           }
@@ -107,14 +105,14 @@ export function registerHooks(
         const userId = resolveUserId(cfg, api);
         const result = await engine.add(turnMsgs, userId, null, null, null, true);
 
-        const actions = (result as any).results?.filter(
-          (r: any) => r.action !== "None"
+        const actions = result.results?.filter(
+          (r) => r.action !== "None"
         );
         if (actions && actions.length > 0) {
           api.logger.info(
             "mem7 auto-capture: %d actions (%s)",
             actions.length,
-            actions.map((a: any) => a.action).join(", ")
+            actions.map((a) => a.action).join(", ")
           );
         } else {
           api.logger.debug("mem7 auto-capture: no new facts");

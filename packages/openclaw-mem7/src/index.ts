@@ -2,7 +2,7 @@ import type { OpenClawPluginApi, PluginConfig } from "./config.js";
 import { buildMem7Config } from "./config.js";
 import { registerTools } from "./tools.js";
 import { registerHooks } from "./hooks.js";
-import type { MemoryEngine } from "@mem7ai/mem7";
+import type { Mem7Engine } from "./engine.js";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -25,12 +25,12 @@ export default {
     const pluginCfg = (api.pluginConfig ?? {}) as PluginConfig;
     const mem7ConfigJson = buildMem7Config(pluginCfg, api);
 
-    let engine: MemoryEngine | null = null;
+    let engine: Mem7Engine | null = null;
 
-    const historyPath = (mem7ConfigJson.history as any)?.db_path;
-    if (historyPath) {
+    const historyDb = (mem7ConfigJson.history as { db_path?: string })?.db_path;
+    if (historyDb) {
       try {
-        mkdirSync(dirname(historyPath), { recursive: true });
+        mkdirSync(dirname(historyDb), { recursive: true });
       } catch {
         // directory may already exist
       }
@@ -39,8 +39,13 @@ export default {
     api.registerService({
       id: "openclaw-mem7",
       async start() {
-        const { MemoryEngine: Mem7Engine } = await import("@mem7ai/mem7");
-        engine = await Mem7Engine.create(JSON.stringify(mem7ConfigJson));
+        // Dynamic import -- types are provided by our local Mem7Engine interface,
+        // not the npm package (which may lag behind the current Rust API).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mod: any = await import("@mem7ai/mem7");
+        engine = await mod.MemoryEngine.create(
+          JSON.stringify(mem7ConfigJson)
+        );
         api.logger.info("mem7 engine initialized");
       },
       async stop() {

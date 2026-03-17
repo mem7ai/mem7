@@ -7,11 +7,9 @@ import {
   formatMemoryList,
   formatAddResult,
 } from "./format.js";
-import type { MemoryEngine } from "@mem7ai/mem7";
+import type { Mem7Engine, EngineGetter } from "./engine.js";
 
-type EngineGetter = () => MemoryEngine | null;
-
-function requireEngine(getEngine: EngineGetter): MemoryEngine {
+function requireEngine(getEngine: EngineGetter): Mem7Engine {
   const engine = getEngine();
   if (!engine) {
     throw new Error("mem7 engine is not initialized yet");
@@ -54,7 +52,7 @@ export function registerTools(
         true,
         null
       );
-      return formatSearchResult(result as any);
+      return formatSearchResult(result);
     },
   });
 
@@ -90,11 +88,11 @@ export function registerTools(
           null,
           args.lines ?? 50
         );
-        return formatMemoryList(items as any);
+        return formatMemoryList(items);
       }
 
       const item = await engine.get(args.path);
-      return formatMemoryItem(item as any);
+      return formatMemoryItem(item);
     },
   });
 
@@ -123,7 +121,7 @@ export function registerTools(
         null,
         true
       );
-      return formatAddResult(result as any);
+      return formatAddResult(result);
     },
   });
 }
