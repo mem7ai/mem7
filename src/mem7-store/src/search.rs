@@ -1,5 +1,6 @@
 use mem7_core::{
-    GraphRelation, MemoryFilter, MemoryItem, SearchOptions, SearchResult, sort_by_score_desc,
+    GraphRelation, MemoryFilter, MemoryItem, SearchOptions, SearchResult, TaskType,
+    sort_by_score_desc,
 };
 use mem7_error::Result;
 use mem7_reranker::RerankDocument;
@@ -10,6 +11,7 @@ use crate::constants::*;
 use crate::decay;
 use crate::engine::{MemoryEngine, graph_result_to_relation};
 use crate::payload::payload_to_memory_item;
+use crate::pipeline;
 use crate::rehearsal;
 
 impl MemoryEngine {
@@ -33,6 +35,7 @@ impl MemoryEngine {
         filters: Option<&serde_json::Value>,
         rerank: bool,
         threshold: Option<f32>,
+        task_type: Option<&str>,
     ) -> Result<SearchResult> {
         let opts = SearchOptions {
             user_id,
@@ -42,6 +45,7 @@ impl MemoryEngine {
             filters,
             rerank,
             threshold,
+            task_type,
         };
         self.search_with_options(query, &opts).await
     }
@@ -52,8 +56,26 @@ impl MemoryEngine {
         query: &str,
         opts: &SearchOptions<'_>,
     ) -> Result<SearchResult> {
-        let vecs = self.embedder.embed(&[query.to_string()]).await?;
+        let context_cfg = self.config.context.as_ref().filter(|c| c.enabled);
+
+        let classify_future = async {
+            if context_cfg.is_some() && opts.task_type.is_none() {
+                pipeline::classify_query(self.llm.as_ref(), query).await
+            } else {
+                opts.task_type
+                    .map(TaskType::from_str_lossy)
+                    .unwrap_or_default()
+            }
+        };
+
+        let query_owned = vec![query.to_string()];
+        let embed_future = self.embedder.embed(&query_owned);
+
+        let (vecs, task_type) = tokio::join!(embed_future, classify_future);
+        let vecs = vecs?;
         let query_vec = vecs.into_iter().next().unwrap_or_default();
+
+        debug!(?task_type, "classified query");
 
         let filter = MemoryFilter {
             metadata: opts.filters.cloned(),
@@ -162,12 +184,31 @@ impl MemoryEngine {
             memories
         };
 
+        if let Some(ctx_cfg) = context_cfg {
+            let tt = task_type.as_str();
+            for item in &mut memories {
+                let mt = item.memory_type.as_deref().unwrap_or("factual");
+                let coeff = ctx_cfg.weight_for(mt, tt) as f32;
+                item.score = item.score.map(|s| s * coeff);
+            }
+            sort_by_score_desc(&mut memories, |m| m.score.unwrap_or(0.0));
+            debug!(task_type = tt, "applied context-aware scoring");
+        }
+
         if let Some(thresh) = opts.threshold {
             memories.retain(|m| m.score.unwrap_or(0.0) >= thresh);
         }
 
-        let relations: Vec<GraphRelation> =
+        let mut relations: Vec<GraphRelation> =
             graph_results.iter().map(graph_result_to_relation).collect();
+
+        if let Some(ctx_cfg) = context_cfg {
+            let tt = task_type.as_str();
+            let coeff = ctx_cfg.weight_for("factual", tt) as f32;
+            for rel in &mut relations {
+                rel.score = rel.score.map(|s| s * coeff);
+            }
+        }
 
         if self.config.decay.as_ref().is_some_and(|d| d.enabled)
             && (!memories.is_empty() || !relations.is_empty())

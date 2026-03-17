@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTabs(".install-tab", "data-install", ".install-panel", "data-install-panel");
   setupTabs(".code-tab", "data-lang", ".code-panel", "data-lang-panel");
   setupTabs("[data-decay]", "data-decay", "[data-decay-panel]", "data-decay-panel");
+  setupTabs("[data-context]", "data-context", "[data-context-panel]", "data-context-panel");
   setupCopyButtons();
   renderKatex();
 });

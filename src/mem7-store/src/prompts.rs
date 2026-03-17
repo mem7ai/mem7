@@ -21,6 +21,12 @@ Types of Information to Remember:
 6. Store Professional Details: Remember job titles, work habits, career goals, and other professional information.
 7. Miscellaneous Information Management: Keep track of favorite books, movies, brands, and other miscellaneous details that the user shares.
 
+Classify each fact into exactly one category:
+- factual: concrete knowledge, settings, numbers, technical facts, personal details
+- preference: personal style, design philosophy, taste, likes/dislikes
+- procedural: workflows, habits, how-to steps, routines
+- episodic: events, experiences, time-bound occurrences, meetings
+
 Here are some few shot examples:
 
 User: Hi.
@@ -33,19 +39,27 @@ Output: {"facts" : []}
 
 User: Hi, I am looking for a restaurant in San Francisco.
 Assistant: Sure, I can help with that. Any particular cuisine you're interested in?
-Output: {"facts" : ["Looking for a restaurant in San Francisco"]}
+Output: {"facts" : [{"text": "Looking for a restaurant in San Francisco", "category": "episodic"}]}
 
 User: Yesterday, I had a meeting with John at 3pm. We discussed the new project.
 Assistant: Sounds like a productive meeting.
-Output: {"facts" : ["Had a meeting with John at 3pm and discussed the new project"]}
+Output: {"facts" : [{"text": "Had a meeting with John at 3pm and discussed the new project", "category": "episodic"}]}
 
 User: Hi, my name is John. I am a software engineer.
 Assistant: Nice to meet you, John! My name is Alex. How can I help?
-Output: {"facts" : ["Name is John", "Is a Software engineer"]}
+Output: {"facts" : [{"text": "Name is John", "category": "factual"}, {"text": "Is a Software engineer", "category": "factual"}]}
 
 User: My favourite movies are Inception and Interstellar. What are yours?
 Assistant: Great choices! Mine are The Dark Knight and The Shawshank Redemption.
-Output: {"facts" : ["Favourite movies are Inception and Interstellar"]}
+Output: {"facts" : [{"text": "Favourite movies are Inception and Interstellar", "category": "preference"}]}
+
+User: I always investigate root cause before fixing bugs.
+Assistant: That's a solid approach!
+Output: {"facts" : [{"text": "Always investigates root cause before fixing bugs", "category": "preference"}]}
+
+User: Chrome CDP timeout is set to 30 seconds.
+Assistant: Got it.
+Output: {"facts" : [{"text": "Chrome CDP timeout is set to 30 seconds", "category": "factual"}]}
 
 Return the facts and preferences in a json format as shown above.
 
@@ -53,7 +67,7 @@ Remember the following:
 - GENERATE FACTS SOLELY BASED ON THE USER'S MESSAGES. DO NOT INCLUDE INFORMATION FROM ASSISTANT OR SYSTEM MESSAGES.
 - If you do not find anything relevant in the below conversation, you can return an empty list corresponding to the "facts" key.
 - Create the facts based on the user messages only. Do not pick anything from the assistant or system messages.
-- Make sure to return the response in the format mentioned in the examples. The response should be in json with a key as "facts" and corresponding value will be a list of strings.
+- Each fact must be a JSON object with "text" (string) and "category" (one of: factual, preference, procedural, episodic).
 - You should detect the language of the user input and record the facts in the same language.
 
 Following is a conversation between the user and the assistant. You have to extract the relevant facts and preferences about the user, if any, from the conversation and return them in the json format as shown above.
@@ -76,6 +90,12 @@ Types of Information to Remember:
 6. Assistant's Knowledge Areas: Keep track of subjects or fields the assistant demonstrates knowledge in.
 7. Miscellaneous Information: Record any other interesting or unique details the assistant shares about itself.
 
+Classify each fact into exactly one category:
+- factual: concrete knowledge, settings, numbers, technical facts, personal details
+- preference: personal style, design philosophy, taste, likes/dislikes
+- procedural: workflows, habits, how-to steps, routines
+- episodic: events, experiences, time-bound occurrences
+
 Here are some few shot examples:
 
 User: Hi, I am looking for a restaurant in San Francisco.
@@ -88,11 +108,11 @@ Output: {"facts" : []}
 
 User: Hi, my name is John. I am a software engineer.
 Assistant: Nice to meet you, John! My name is Alex and I admire software engineering. How can I help?
-Output: {"facts" : ["Admires software engineering", "Name is Alex"]}
+Output: {"facts" : [{"text": "Admires software engineering", "category": "preference"}, {"text": "Name is Alex", "category": "factual"}]}
 
 User: My favourite movies are Inception and Interstellar. What are yours?
 Assistant: Great choices! Both are fantastic movies. Mine are The Dark Knight and The Shawshank Redemption.
-Output: {"facts" : ["Favourite movies are Dark Knight and Shawshank Redemption"]}
+Output: {"facts" : [{"text": "Favourite movies are Dark Knight and Shawshank Redemption", "category": "preference"}]}
 
 Return the facts and preferences in a JSON format as shown above.
 
@@ -100,7 +120,7 @@ Remember the following:
 - GENERATE FACTS SOLELY BASED ON THE ASSISTANT'S MESSAGES. DO NOT INCLUDE INFORMATION FROM USER OR SYSTEM MESSAGES.
 - If you do not find anything relevant in the below conversation, you can return an empty list corresponding to the "facts" key.
 - Create the facts based on the assistant messages only. Do not pick anything from the user or system messages.
-- Make sure to return the response in the format mentioned in the examples. The response should be in json with a key as "facts" and corresponding value will be a list of strings.
+- Each fact must be a JSON object with "text" (string) and "category" (one of: factual, preference, procedural, episodic).
 - You should detect the language of the assistant input and record the facts in the same language.
 
 Following is a conversation between the user and the assistant. You have to extract the relevant facts and preferences about the assistant, if any, from the conversation and return them in the json format as shown above.
@@ -304,3 +324,15 @@ Follow the instructions mentioned below:
 Do not return anything except the JSON format."#
     )
 }
+
+/// Short prompt for classifying search queries into task types.
+/// Designed for fast LLM calls with minimal tokens.
+pub const QUERY_CLASSIFICATION_PROMPT: &str = r#"Classify this query into exactly one task type:
+- troubleshooting: debugging, fixing bugs, resolving errors
+- design: creating features, architecture decisions, UI/UX
+- factual_lookup: retrieving specific facts, settings, numbers
+- planning: scheduling, organizing, strategizing
+- general: anything else
+
+Query: {query}
+Return JSON: {"task_type": "..."}"#;

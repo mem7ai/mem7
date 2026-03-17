@@ -27,6 +27,7 @@
         <a href="#quickstart">Quick Start</a>
         <a href="#features">Features</a>
         <a href="#decay">Memory Decay</a>
+        <a href="#context">Context Scoring</a>
         <a href="#providers">Providers</a>
         <a href="openclaw.html">OpenClaw</a>
         <a href="https://github.com/mem7ai/mem7" target="_blank" rel="noopener">
@@ -539,8 +540,138 @@ config = MemoryConfig(
     </div>
   </section>
 
+  <!-- ── Context-Aware Scoring ─────────────────────────────────── -->
+  <section id="context" class="section section-alt">
+    <div class="container">
+      <h2>Session-Aware Recall</h2>
+      <p class="section-sub">Context-aware scoring that demotes irrelevant memories based on task type &mdash; so design preferences don't leak into bug fixing.</p>
+
+      <div class="decay-overview">
+        <div class="decay-formula-card">
+          <h3>The Scoring Model</h3>
+          <div class="decay-formula">
+            <div class="decay-eq decay-eq-final" data-katex="\text{score} = \text{similarity} \times \text{decay} \times \text{context\_coeff}"></div>
+          </div>
+          <p style="margin-top:1rem;color:var(--muted);font-size:.92rem;">
+            The <strong>context coefficient</strong> is looked up from a <code>(memory_type, task_type)</code> weight matrix.
+            Each fact is typed at write time; each query is classified at read time &mdash; <strong>in parallel with embedding</strong>, adding zero sequential latency.
+          </p>
+        </div>
+
+        <div class="decay-how-card">
+          <h3>How It Works</h3>
+          <div class="decay-lifecycle">
+            <div class="decay-lc-step">
+              <div class="decay-lc-num">1</div>
+              <div class="decay-lc-body">
+                <strong>Memory Typing (Write)</strong>
+                <span>LLM classifies each extracted fact as <code>factual</code>, <code>preference</code>, <code>procedural</code>, or <code>episodic</code>.</span>
+              </div>
+            </div>
+            <div class="decay-lc-step">
+              <div class="decay-lc-num">2</div>
+              <div class="decay-lc-body">
+                <strong>Query Classification (Read)</strong>
+                <span>A lightweight LLM call classifies the query as <code>troubleshooting</code>, <code>design</code>, <code>factual_lookup</code>, <code>planning</code>, or <code>general</code>.</span>
+              </div>
+            </div>
+            <div class="decay-lc-step">
+              <div class="decay-lc-num">3</div>
+              <div class="decay-lc-body">
+                <strong>Context Coefficient</strong>
+                <span>Score is multiplied by the weight matrix value. E.g. <code>preference</code> &times; <code>troubleshooting</code> = 0.3.</span>
+              </div>
+            </div>
+            <div class="decay-lc-step">
+              <div class="decay-lc-num">4</div>
+              <div class="decay-lc-body">
+                <strong>Re-ranked Results</strong>
+                <span>Memories are re-sorted by final score. Contextually irrelevant items drop to the bottom.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="decay-details-grid">
+        <div class="decay-detail-card">
+          <h4>The Chrome CDP Problem</h4>
+          <p><strong>Before:</strong> "Always investigate root cause first" (preference, score 0.92) appears when searching "fix Chrome CDP timeout" because both relate to debugging.</p>
+          <p><strong>After:</strong> With context scoring, the preference gets coefficient 0.3 for troubleshooting tasks, dropping to 0.276. Factual memories about Chrome CDP remain at full score.</p>
+        </div>
+        <div class="decay-detail-card">
+          <h4>Default Weight Matrix</h4>
+          <table style="width:100%;font-size:.85rem;margin-top:.5rem;">
+            <thead><tr><th></th><th>trouble&shy;shoot</th><th>design</th><th>factual</th><th>planning</th><th>general</th></tr></thead>
+            <tbody>
+              <tr><td><strong>factual</strong></td><td>1.0</td><td>0.5</td><td>1.0</td><td>0.7</td><td>1.0</td></tr>
+              <tr><td><strong>preference</strong></td><td>0.3</td><td>1.0</td><td>0.3</td><td>0.8</td><td>0.8</td></tr>
+              <tr><td><strong>procedural</strong></td><td>0.8</td><td>0.5</td><td>0.5</td><td>1.0</td><td>0.7</td></tr>
+              <tr><td><strong>episodic</strong></td><td>0.5</td><td>0.5</td><td>0.5</td><td>0.5</td><td>0.7</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="decay-detail-card">
+          <h4>Zero Latency Overhead</h4>
+          <p>Query classification runs <strong>in parallel</strong> with embedding via <code>tokio::join!</code>, so it adds exactly zero milliseconds to the search path. Callers can also pass <code>task_type</code> directly to skip the LLM call entirely.</p>
+        </div>
+      </div>
+
+      <div class="decay-config-section">
+        <h3>Configuration</h3>
+        <p class="section-sub">Context scoring is <strong>off by default</strong>. Enable and optionally customize weights.</p>
+
+        <div class="code-card">
+          <div class="code-tab-bar">
+            <button class="code-tab active" data-context="python">Python</button>
+            <button class="code-tab" data-context="typescript">TypeScript</button>
+          </div>
+
+          <div class="code-panel active" data-context-panel="python">
+            <div class="code-header">
+              <span class="code-filename">context_config.py</span>
+            </div>
+<pre><code><span class="kw">from</span> mem7.config <span class="kw">import</span> MemoryConfig, ContextConfig
+
+config = MemoryConfig(
+    <span class="cmt"># ... llm, embedding, etc.</span>
+    context=ContextConfig(enabled=<span class="num">True</span>),
+)
+
+m = Memory(config=config)
+
+<span class="cmt"># Auto-classification (LLM decides task type)</span>
+results = m.search(<span class="str">"fix Chrome CDP timeout"</span>, user_id=<span class="str">"alice"</span>)
+
+<span class="cmt"># Override: skip LLM call, tell mem7 this is troubleshooting</span>
+results = m.search(<span class="str">"fix Chrome CDP timeout"</span>, user_id=<span class="str">"alice"</span>, task_type=<span class="str">"troubleshooting"</span>)</code></pre>
+          </div>
+
+          <div class="code-panel" data-context-panel="typescript">
+            <div class="code-header">
+              <span class="code-filename">context_config.ts</span>
+            </div>
+<pre><code><span class="kw">const</span> engine = <span class="kw">await</span> MemoryEngine.create(JSON.stringify({
+  <span class="cmt">// ... llm, embedding, etc.</span>
+  context: { enabled: <span class="num">true</span> },
+}));
+
+<span class="cmt">// Auto-classification</span>
+<span class="kw">const</span> results = <span class="kw">await</span> engine.search(<span class="str">"fix Chrome CDP timeout"</span>, <span class="str">"alice"</span>);
+
+<span class="cmt">// Override task type</span>
+<span class="kw">const</span> results2 = <span class="kw">await</span> engine.search(
+  <span class="str">"fix Chrome CDP timeout"</span>, <span class="str">"alice"</span>,
+  undefined, undefined, undefined, undefined, undefined, <span class="str">"troubleshooting"</span>
+);</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Providers ───────────────────────────────────────────────── -->
-  <section id="providers" class="section section-alt">
+  <section id="providers" class="section">
     <div class="container">
       <h2>Supported Providers</h2>
       <p class="section-sub">One OpenAI-compatible client covers most LLM and embedding providers out of the box.</p>

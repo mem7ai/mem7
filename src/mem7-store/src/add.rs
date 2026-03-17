@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use mem7_core::{
     AddOptions, AddResult, ChatMessage, MemoryAction, MemoryActionResult, MemoryFilter,
     new_memory_id,
@@ -253,6 +255,11 @@ impl MemoryEngine {
         )
         .await?;
 
+        let fact_type_map: HashMap<&str, &str> = facts
+            .iter()
+            .map(|f| (f.text.as_str(), f.memory_type.as_str()))
+            .collect();
+
         let now = now_iso();
         let mut results = Vec::new();
 
@@ -265,8 +272,9 @@ impl MemoryEngine {
                     let vecs = self.embedder.embed(std::slice::from_ref(text)).await?;
                     let vec = vecs.into_iter().next().unwrap_or_default();
 
+                    let mt = fact_type_map.get(text.as_str()).copied();
                     let payload =
-                        build_memory_payload(text, user_id, agent_id, run_id, metadata, &now);
+                        build_memory_payload(text, user_id, agent_id, run_id, metadata, &now, mt);
 
                     self.vector_index.insert(memory_id, &vec, payload).await?;
 
@@ -289,14 +297,15 @@ impl MemoryEngine {
                         let vecs = self.embedder.embed(std::slice::from_ref(text)).await?;
                         let vec = vecs.into_iter().next().unwrap_or_default();
 
-                        let prev_ac = self
-                            .vector_index
-                            .get(&real_id)
-                            .await
-                            .ok()
-                            .flatten()
-                            .map(|(_, p)| decay::access_count_from_payload(&p))
+                        let existing_entry = self.vector_index.get(&real_id).await.ok().flatten();
+                        let prev_ac = existing_entry
+                            .as_ref()
+                            .map(|(_, p)| decay::access_count_from_payload(p))
                             .unwrap_or(0);
+                        let existing_mt = existing_entry
+                            .as_ref()
+                            .and_then(|(_, p)| p.get("memory_type").and_then(|v| v.as_str()));
+                        let mt = existing_mt.or_else(|| fact_type_map.get(text.as_str()).copied());
 
                         let payload = build_update_payload(
                             text,
@@ -306,6 +315,7 @@ impl MemoryEngine {
                             metadata,
                             &now,
                             prev_ac + 1,
+                            mt,
                         );
 
                         self.vector_index

@@ -82,6 +82,7 @@ impl JsMemoryEngine {
         filters: Option<String>,
         rerank: Option<bool>,
         threshold: Option<f64>,
+        task_type: Option<String>,
     ) -> Result<JsSearchResult> {
         let filters_val: Option<serde_json::Value> = filters
             .map(|s| serde_json::from_str(&s))
@@ -99,6 +100,7 @@ impl JsMemoryEngine {
                 filters_val.as_ref(),
                 rerank.unwrap_or(true),
                 threshold.map(|t| t as f32),
+                task_type.as_deref(),
             )
             .await
             .map_err(to_napi_err)?;

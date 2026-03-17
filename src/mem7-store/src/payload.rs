@@ -9,6 +9,7 @@ pub fn build_memory_payload(
     run_id: Option<&str>,
     metadata: Option<&serde_json::Value>,
     now: &str,
+    memory_type: Option<&str>,
 ) -> serde_json::Value {
     let mut payload = serde_json::json!({
         "text": text,
@@ -23,6 +24,9 @@ pub fn build_memory_payload(
     if let Some(meta) = metadata {
         payload["metadata"] = meta.clone();
     }
+    if let Some(mt) = memory_type {
+        payload["memory_type"] = serde_json::Value::String(mt.to_string());
+    }
     payload
 }
 
@@ -36,12 +40,13 @@ pub fn build_raw_memory_payload(
     metadata: Option<&serde_json::Value>,
     now: &str,
 ) -> serde_json::Value {
-    let mut payload = build_memory_payload(text, user_id, agent_id, run_id, metadata, now);
+    let mut payload = build_memory_payload(text, user_id, agent_id, run_id, metadata, now, None);
     payload["role"] = serde_json::Value::String(role.to_string());
     payload
 }
 
 /// Build the JSON payload for an updated memory record (no `created_at`).
+#[allow(clippy::too_many_arguments)]
 pub fn build_update_payload(
     text: &str,
     user_id: Option<&str>,
@@ -50,6 +55,7 @@ pub fn build_update_payload(
     metadata: Option<&serde_json::Value>,
     now: &str,
     access_count: u32,
+    memory_type: Option<&str>,
 ) -> serde_json::Value {
     let mut payload = serde_json::json!({
         "text": text,
@@ -62,6 +68,9 @@ pub fn build_update_payload(
     });
     if let Some(meta) = metadata {
         payload["metadata"] = meta.clone();
+    }
+    if let Some(mt) = memory_type {
+        payload["memory_type"] = serde_json::Value::String(mt.to_string());
     }
     payload
 }
@@ -114,6 +123,10 @@ pub fn payload_to_memory_item(
             .get("access_count")
             .and_then(|v| v.as_u64())
             .unwrap_or(0) as u32,
+        memory_type: payload
+            .get("memory_type")
+            .and_then(|v| v.as_str())
+            .map(String::from),
     }
 }
 
@@ -130,17 +143,25 @@ mod tests {
             None,
             None,
             "2025-01-01T00:00:00Z",
+            None,
         );
         assert_eq!(p["text"], "hello");
         assert_eq!(p["user_id"], "u1");
         assert_eq!(p["access_count"], 0);
         assert!(p.get("metadata").is_none());
+        assert!(p.get("memory_type").is_none());
+    }
+
+    #[test]
+    fn build_memory_payload_with_memory_type() {
+        let p = build_memory_payload("hi", None, None, None, None, "now", Some("preference"));
+        assert_eq!(p["memory_type"], "preference");
     }
 
     #[test]
     fn build_memory_payload_with_metadata() {
         let meta = serde_json::json!({"key": "value"});
-        let p = build_memory_payload("hi", None, None, None, Some(&meta), "now");
+        let p = build_memory_payload("hi", None, None, None, Some(&meta), "now", None);
         assert_eq!(p["metadata"]["key"], "value");
     }
 
@@ -152,7 +173,7 @@ mod tests {
 
     #[test]
     fn update_payload_has_no_created_at() {
-        let p = build_update_payload("updated", None, None, None, None, "now", 3);
+        let p = build_update_payload("updated", None, None, None, None, "now", 3, None);
         assert!(p.get("created_at").is_none());
         assert_eq!(p["access_count"], 3);
     }
@@ -160,7 +181,15 @@ mod tests {
     #[test]
     fn payload_round_trip() {
         let now = "2025-06-15T10:30:00Z";
-        let original = build_memory_payload("test text", Some("u1"), Some("a1"), None, None, now);
+        let original = build_memory_payload(
+            "test text",
+            Some("u1"),
+            Some("a1"),
+            None,
+            None,
+            now,
+            Some("procedural"),
+        );
         let id = mem7_core::new_memory_id();
         let item = payload_to_memory_item(id, &original, Some(0.95));
 
@@ -172,6 +201,7 @@ mod tests {
         assert_eq!(item.score, Some(0.95));
         assert_eq!(item.created_at, now);
         assert_eq!(item.access_count, 0);
+        assert_eq!(item.memory_type.as_deref(), Some("procedural"));
     }
 
     #[test]
@@ -182,5 +212,6 @@ mod tests {
         assert!(item.user_id.is_none());
         assert!(item.score.is_none());
         assert_eq!(item.access_count, 0);
+        assert!(item.memory_type.is_none());
     }
 }

@@ -53,6 +53,9 @@ async function main() {
       history: {
         db_path: ":memory:",
       },
+      context: {
+        enabled: true,
+      },
     })
   );
 
@@ -211,7 +214,35 @@ async function main() {
   pp(await engine.search("tennis", "bob"));
   console.log();
 
-  // ── 10. Cleanup ──────────────────────────────────────────────────
+  // ── 10. Context-aware search ─────────────────────────────────────
+  console.log("=== Context-aware search ===\n");
+
+  console.log("Auto-classified query:");
+  pp(await engine.search("What sports does Alice play?", "alice", undefined, undefined, 3));
+
+  console.log("\nOverride task_type = troubleshooting (preferences demoted):");
+  pp(
+    await engine.search(
+      "What sports does Alice play?",
+      "alice",
+      undefined,
+      undefined,
+      3,
+      undefined,
+      undefined,
+      undefined,
+      "troubleshooting"
+    )
+  );
+
+  console.log("\nMemory types in stored memories:");
+  const mems = await engine.getAll("alice");
+  for (const m of mems) {
+    console.log(`  [${m.memoryType ?? "unknown"}] ${m.text}`);
+  }
+  console.log();
+
+  // ── 11. Cleanup ──────────────────────────────────────────────────
   await engine.reset();
   console.log("All data cleared");
 }

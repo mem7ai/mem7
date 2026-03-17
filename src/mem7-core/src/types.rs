@@ -19,12 +19,106 @@ pub struct MemoryItem {
     /// Number of times this memory has been retrieved (rehearsal count).
     #[serde(default)]
     pub access_count: u32,
+    /// Category of this memory (factual, preference, procedural, episodic).
+    /// `None` for memories created before typing was introduced.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_type: Option<String>,
+}
+
+/// Category of a stored memory, assigned during fact extraction.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryType {
+    #[default]
+    Factual,
+    Preference,
+    Procedural,
+    Episodic,
+}
+
+impl std::fmt::Display for MemoryType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Factual => write!(f, "factual"),
+            Self::Preference => write!(f, "preference"),
+            Self::Procedural => write!(f, "procedural"),
+            Self::Episodic => write!(f, "episodic"),
+        }
+    }
+}
+
+impl MemoryType {
+    pub fn from_str_lossy(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "preference" => Self::Preference,
+            "procedural" => Self::Procedural,
+            "episodic" => Self::Episodic,
+            _ => Self::Factual,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Factual => "factual",
+            Self::Preference => "preference",
+            Self::Procedural => "procedural",
+            Self::Episodic => "episodic",
+        }
+    }
+}
+
+/// Task type detected from a search query, used for context-aware scoring.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TaskType {
+    Troubleshooting,
+    Design,
+    FactualLookup,
+    Planning,
+    #[default]
+    General,
+}
+
+impl std::fmt::Display for TaskType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Troubleshooting => write!(f, "troubleshooting"),
+            Self::Design => write!(f, "design"),
+            Self::FactualLookup => write!(f, "factual_lookup"),
+            Self::Planning => write!(f, "planning"),
+            Self::General => write!(f, "general"),
+        }
+    }
+}
+
+impl TaskType {
+    pub fn from_str_lossy(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "troubleshooting" => Self::Troubleshooting,
+            "design" => Self::Design,
+            "factual_lookup" => Self::FactualLookup,
+            "planning" => Self::Planning,
+            _ => Self::General,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Troubleshooting => "troubleshooting",
+            Self::Design => "design",
+            Self::FactualLookup => "factual_lookup",
+            Self::Planning => "planning",
+            Self::General => "general",
+        }
+    }
 }
 
 /// A fact extracted by the LLM from a conversation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fact {
     pub text: String,
+    #[serde(default)]
+    pub memory_type: MemoryType,
 }
 
 /// The type of memory event recorded in the audit trail.
@@ -138,6 +232,9 @@ pub struct SearchOptions<'a> {
     pub filters: Option<&'a serde_json::Value>,
     pub rerank: bool,
     pub threshold: Option<f32>,
+    /// Override auto-classification with a caller-provided task type.
+    /// When set, the LLM classification call is skipped.
+    pub task_type: Option<&'a str>,
 }
 
 impl<'a> Default for SearchOptions<'a> {
@@ -150,6 +247,7 @@ impl<'a> Default for SearchOptions<'a> {
             filters: None,
             rerank: true,
             threshold: None,
+            task_type: None,
         }
     }
 }

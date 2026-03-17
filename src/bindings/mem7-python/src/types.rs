@@ -25,6 +25,7 @@ pub struct PyMemoryItem {
     pub score: Option<f32>,
     pub last_accessed_at: Option<String>,
     pub access_count: u32,
+    pub memory_type: Option<String>,
 }
 
 #[pymethods]
@@ -48,6 +49,7 @@ impl From<MemoryItem> for PyMemoryItem {
             score: m.score,
             last_accessed_at: m.last_accessed_at,
             access_count: m.access_count,
+            memory_type: m.memory_type,
         }
     }
 }

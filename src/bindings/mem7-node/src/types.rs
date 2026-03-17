@@ -33,6 +33,7 @@ pub struct JsMemoryItem {
     pub score: Option<f64>,
     pub last_accessed_at: Option<String>,
     pub access_count: u32,
+    pub memory_type: Option<String>,
 }
 
 impl From<MemoryItem> for JsMemoryItem {
@@ -49,6 +50,7 @@ impl From<MemoryItem> for JsMemoryItem {
             score: m.score.map(|s| s as f64),
             last_accessed_at: m.last_accessed_at,
             access_count: m.access_count,
+            memory_type: m.memory_type,
         }
     }
 }

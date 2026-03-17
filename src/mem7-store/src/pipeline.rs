@@ -1,4 +1,4 @@
-use mem7_core::{ChatMessage, Fact};
+use mem7_core::{ChatMessage, Fact, MemoryType, TaskType};
 use mem7_dedup::{
     MemoryUpdateResponse, build_existing_memory_dict, deduplicate_memories,
     parse_memory_update_response,
@@ -6,13 +6,46 @@ use mem7_dedup::{
 use mem7_error::{Mem7Error, Result};
 use mem7_llm::{LlmClient, LlmMessage, ResponseFormat};
 use serde::Deserialize;
-use tracing::debug;
+use tracing::{debug, warn};
 
-use crate::prompts::{AGENT_FACT_EXTRACTION_PROMPT, USER_FACT_EXTRACTION_PROMPT};
+use crate::prompts::{
+    AGENT_FACT_EXTRACTION_PROMPT, QUERY_CLASSIFICATION_PROMPT, USER_FACT_EXTRACTION_PROMPT,
+};
+
+/// A single fact entry returned by the LLM.
+/// Supports both the new structured format `{"text": "...", "category": "..."}` and
+/// a plain string (for backward compatibility with older prompt responses).
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum FactEntry {
+    Structured {
+        text: String,
+        category: Option<String>,
+    },
+    Plain(String),
+}
 
 #[derive(Debug, Deserialize)]
 struct FactExtractionOutput {
-    facts: Vec<String>,
+    facts: Vec<FactEntry>,
+}
+
+impl FactEntry {
+    fn into_fact(self) -> Fact {
+        match self {
+            Self::Structured { text, category } => {
+                let memory_type = category
+                    .as_deref()
+                    .map(MemoryType::from_str_lossy)
+                    .unwrap_or_default();
+                Fact { text, memory_type }
+            }
+            Self::Plain(text) => Fact {
+                text,
+                memory_type: MemoryType::default(),
+            },
+        }
+    }
 }
 
 /// Determine whether to use agent memory extraction.
@@ -65,7 +98,7 @@ pub async fn extract_facts(
     let output: FactExtractionOutput =
         mem7_core::parse_json_response(&response.content).map_err(Mem7Error::Serialization)?;
 
-    Ok(output.facts.into_iter().map(|text| Fact { text }).collect())
+    Ok(output.facts.into_iter().map(FactEntry::into_fact).collect())
 }
 
 /// Ask the LLM to decide how to update memory given new facts and existing memories.
@@ -96,4 +129,46 @@ pub async fn decide_memory_updates(
     let update_resp = parse_memory_update_response(&response.content)?;
 
     Ok((update_resp, id_mapping))
+}
+
+// ── Query classification ─────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+struct ClassificationOutput {
+    task_type: Option<String>,
+}
+
+/// Classify a search query into a task type via a short LLM call.
+///
+/// Falls back to `TaskType::General` on any parse failure, ensuring the
+/// search pipeline is never blocked by classification errors.
+pub async fn classify_query(llm: &dyn LlmClient, query: &str) -> TaskType {
+    let prompt = QUERY_CLASSIFICATION_PROMPT.replace("{query}", query);
+
+    let llm_messages = vec![LlmMessage::user(prompt)];
+
+    let response = match llm
+        .chat_completion(&llm_messages, Some(&ResponseFormat::json()))
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            warn!(error = %e, "query classification LLM call failed, defaulting to general");
+            return TaskType::General;
+        }
+    };
+
+    debug!(raw_response = %response.content, "query classification response");
+
+    match mem7_core::parse_json_response::<ClassificationOutput>(&response.content) {
+        Ok(output) => output
+            .task_type
+            .as_deref()
+            .map(TaskType::from_str_lossy)
+            .unwrap_or_default(),
+        Err(e) => {
+            warn!(error = %e, "failed to parse classification response, defaulting to general");
+            TaskType::General
+        }
+    }
 }

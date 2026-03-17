@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -266,6 +268,68 @@ impl Default for DecayConfig {
     }
 }
 
+/// Context-aware scoring configuration.
+///
+/// When enabled, each memory's score is multiplied by a coefficient looked up
+/// from a `(memory_type, task_type)` weight matrix. This demotes contextually
+/// irrelevant memories (e.g. design preferences during troubleshooting).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ContextConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Weight matrix: `weights[memory_type][task_type] -> coefficient`.
+    /// Outer key is memory type (factual, preference, procedural, episodic).
+    /// Inner key is task type (troubleshooting, design, factual_lookup, planning, general).
+    /// If absent, built-in defaults are used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weights: Option<HashMap<String, HashMap<String, f64>>>,
+}
+
+impl ContextConfig {
+    /// Look up the context weight for a given `(memory_type, task_type)` pair.
+    /// Falls back to built-in defaults when the user hasn't configured custom weights.
+    pub fn weight_for(&self, memory_type: &str, task_type: &str) -> f64 {
+        if let Some(w) = &self.weights
+            && let Some(inner) = w.get(memory_type)
+            && let Some(&v) = inner.get(task_type)
+        {
+            return v;
+        }
+        Self::default_weight(memory_type, task_type)
+    }
+
+    fn default_weight(memory_type: &str, task_type: &str) -> f64 {
+        match (memory_type, task_type) {
+            // factual
+            ("factual", "troubleshooting") => 1.0,
+            ("factual", "design") => 0.5,
+            ("factual", "factual_lookup") => 1.0,
+            ("factual", "planning") => 0.7,
+            ("factual", "general") => 1.0,
+            // preference
+            ("preference", "troubleshooting") => 0.3,
+            ("preference", "design") => 1.0,
+            ("preference", "factual_lookup") => 0.3,
+            ("preference", "planning") => 0.8,
+            ("preference", "general") => 0.8,
+            // procedural
+            ("procedural", "troubleshooting") => 0.8,
+            ("procedural", "design") => 0.5,
+            ("procedural", "factual_lookup") => 0.5,
+            ("procedural", "planning") => 1.0,
+            ("procedural", "general") => 0.7,
+            // episodic
+            ("episodic", "troubleshooting") => 0.5,
+            ("episodic", "design") => 0.5,
+            ("episodic", "factual_lookup") => 0.5,
+            ("episodic", "planning") => 0.5,
+            ("episodic", "general") => 0.7,
+            // unknown combos
+            _ => 1.0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryEngineConfig {
     #[serde(default)]
@@ -280,6 +344,7 @@ pub struct MemoryEngineConfig {
     pub graph: Option<GraphConfig>,
     pub telemetry: Option<TelemetryConfig>,
     pub decay: Option<DecayConfig>,
+    pub context: Option<ContextConfig>,
     pub custom_fact_extraction_prompt: Option<String>,
     pub custom_update_memory_prompt: Option<String>,
 }
@@ -315,6 +380,21 @@ impl MemoryEngineConfig {
             }
             if !(0.0..=1.0).contains(&decay.min_retention) {
                 errors.push("decay.min_retention must be in [0.0, 1.0]".into());
+            }
+        }
+
+        if let Some(ctx) = &self.context
+            && ctx.enabled
+            && let Some(weights) = &ctx.weights
+        {
+            for (mt, inner) in weights {
+                for (tt, &v) in inner {
+                    if !(0.0..=1.0).contains(&v) {
+                        errors.push(format!(
+                            "context.weights[{mt}][{tt}] = {v} must be in [0.0, 1.0]"
+                        ));
+                    }
+                }
             }
         }
 

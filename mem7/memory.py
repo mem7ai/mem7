@@ -10,7 +10,7 @@ from mem7.config import MemoryConfig
 
 
 def _memory_item_to_dict(item) -> dict:
-    return {
+    d = {
         "id": item.id,
         "text": item.text,
         "user_id": item.user_id,
@@ -21,6 +21,9 @@ def _memory_item_to_dict(item) -> dict:
         "updated_at": item.updated_at,
         "score": item.score,
     }
+    if item.memory_type is not None:
+        d["memory_type"] = item.memory_type
+    return d
 
 
 def _action_result_to_dict(r) -> dict:
@@ -105,11 +108,12 @@ class Memory:
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
         rerank: bool = True,
+        task_type: Optional[str] = None,
     ) -> dict:
         filters_json = _json.dumps(filters) if filters is not None else None
         result = self._engine.search(
             query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-            filters=filters_json, rerank=rerank,
+            filters=filters_json, rerank=rerank, task_type=task_type,
         )
         return _search_result_to_dict(result)
 
@@ -209,12 +213,13 @@ class AsyncMemory:
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
         rerank: bool = True,
+        task_type: Optional[str] = None,
     ) -> dict:
         engine = self._check_engine()
         filters_json = _json.dumps(filters) if filters is not None else None
         result = await engine.search(
             query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-            filters=filters_json, rerank=rerank,
+            filters=filters_json, rerank=rerank, task_type=task_type,
         )
         return _search_result_to_dict(result)
 

@@ -45,12 +45,25 @@ class DecayConfig(BaseModel):
     rehearsal_factor: float = 0.5
 
 
+class ContextConfig(BaseModel):
+    """Context-aware scoring configuration.
+
+    When enabled, each memory's score is multiplied by a coefficient from a
+    (memory_type, task_type) weight matrix, demoting contextually irrelevant
+    memories.
+    """
+
+    enabled: bool = False
+    weights: Optional[dict[str, dict[str, float]]] = None
+
+
 class MemoryConfig(BaseModel):
     llm: LlmConfig = Field(default_factory=LlmConfig)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     vector: VectorConfig = Field(default_factory=VectorConfig)
     history: HistoryConfig = Field(default_factory=HistoryConfig)
     decay: Optional[DecayConfig] = None
+    context: Optional[ContextConfig] = None
     custom_fact_extraction_prompt: Optional[str] = None
     custom_update_memory_prompt: Optional[str] = None
 

@@ -387,6 +387,87 @@ let config = MemoryEngineConfig {
 - No migration needed — new fields are written on the next `add()` or `update()` call.
 - When decay is disabled (the default), scoring behavior is identical to previous versions.
 
+## Context-Aware Scoring (Session-Aware Recall)
+
+Pure embedding similarity can conflate semantic closeness with contextual relevance — for example, a design preference like "always investigate root cause first" may score high when searching "fix Chrome CDP bug" because both relate to debugging. With context-aware scoring, mem7 automatically classifies queries and memories to boost what's relevant and demote what isn't.
+
+### How It Works
+
+1. **Write path** — each extracted fact is tagged with a `memory_type` (factual, preference, procedural, episodic) during LLM fact extraction.
+2. **Read path** — each search query is classified into a `task_type` (troubleshooting, design, factual_lookup, planning, general) via a lightweight LLM call that runs **in parallel** with embedding, adding zero sequential latency.
+3. A **context coefficient** is looked up from a `(memory_type, task_type)` weight matrix and multiplied into the score:
+
+$$\text{score}_{\text{final}} = \text{similarity} \times \text{decay} \times \text{context\_coeff}$$
+
+### Default Weight Matrix
+
+|               | troubleshooting | design | factual_lookup | planning | general |
+|---------------|:-:|:-:|:-:|:-:|:-:|
+| **factual**   | 1.0 | 0.5 | 1.0 | 0.7 | 1.0 |
+| **preference**| 0.3 | 1.0 | 0.3 | 0.8 | 0.8 |
+| **procedural**| 0.8 | 0.5 | 0.5 | 1.0 | 0.7 |
+| **episodic**  | 0.5 | 0.5 | 0.5 | 0.5 | 0.7 |
+
+### Enabling Context-Aware Scoring
+
+Context scoring is **off by default**. Enable it via config:
+
+**Python:**
+
+```python
+from mem7.config import MemoryConfig, ContextConfig
+
+config = MemoryConfig(
+    # ... llm, embedding, etc.
+    context=ContextConfig(enabled=True),
+)
+```
+
+**TypeScript:**
+
+```typescript
+const engine = await MemoryEngine.create(JSON.stringify({
+  // ... llm, embedding, etc.
+  context: { enabled: true },
+}));
+```
+
+**Rust:**
+
+```rust
+use mem7_config::{MemoryEngineConfig, ContextConfig};
+
+let config = MemoryEngineConfig {
+    context: Some(ContextConfig { enabled: true, ..Default::default() }),
+    ..Default::default()
+};
+```
+
+You can also provide custom weights to override the defaults:
+
+```python
+ContextConfig(
+    enabled=True,
+    weights={
+        "preference": {"troubleshooting": 0.1, "design": 1.0},
+    },
+)
+```
+
+### Overriding Task Type
+
+If the caller already knows the task context, it can pass `task_type` directly to skip the LLM classification call:
+
+```python
+results = m.search("fix Chrome CDP timeout", user_id="alice", task_type="troubleshooting")
+```
+
+### Backward Compatibility
+
+- Context scoring defaults to disabled — zero impact on existing users.
+- Old memories without `memory_type` are treated as `"factual"` (safe default).
+- When context is disabled, the scoring pipeline is identical to previous versions.
+
 ## OpenClaw Plugin
 
 mem7 ships an official [OpenClaw](https://github.com/nicepkg/openclaw) memory plugin that replaces the built-in memory backend with LLM-powered fact extraction, graph relations, dedup, and the forgetting curve — all driven by mem7's Rust core.
