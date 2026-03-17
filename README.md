@@ -473,10 +473,10 @@ telemetry::shutdown();
 
 ## Examples
 
-See the `[examples/](examples/)` directory:
+See the [examples/](examples/) directory:
 
-- `[mem7_demo.ipynb](examples/mem7_demo.ipynb)` — Python notebook demo
-- `[mem7_demo.ts](examples/mem7_demo.ts)` — TypeScript demo
+- [mem7_demo.ipynb](examples/mem7_demo.ipynb) — Python notebook demo
+- [mem7_demo.ts](examples/mem7_demo.ts) — TypeScript demo
 
 ## Development
 
