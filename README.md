@@ -1,8 +1,14 @@
-# mem7
+<p align="center">
+  <img src="docs/logo.png" alt="mem7" width="120">
+</p>
 
-LLM-powered long-term memory engine — Rust core with multi-language bindings.
+<h1 align="center">mem7</h1>
 
-mem7 extracts factual statements from conversations, deduplicates them against existing memories, and stores the results in a vector database with full audit history.
+<p align="center">LLM-powered long-term memory engine — Rust core with multi-language bindings.</p>
+
+Deeply inspired by [Mem0](https://mem0.ai/), mem7 reimplements the core memory pipeline in Rust and adds an **Ebbinghaus forgetting curve** — stale memories naturally decay over time while frequently recalled facts grow stronger, just like human memory.
+
+mem7 extracts factual statements from conversations, deduplicates them against existing memories, and stores the results in vector + graph databases with full audit history.
 
 ## Install
 
