@@ -381,6 +381,48 @@ let config = MemoryEngineConfig {
 - No migration needed — new fields are written on the next `add()` or `update()` call.
 - When decay is disabled (the default), scoring behavior is identical to previous versions.
 
+## OpenClaw Plugin
+
+mem7 ships an official [OpenClaw](https://github.com/nicepkg/openclaw) memory plugin that replaces the built-in memory backend with LLM-powered fact extraction, graph relations, dedup, and the forgetting curve — all driven by mem7's Rust core.
+
+### Install
+
+```bash
+openclaw plugins install @mem7ai/openclaw-mem7
+```
+
+### Activate
+
+In `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "plugins": {
+    "slots": { "memory": "openclaw-mem7" },
+    "entries": {
+      "openclaw-mem7": {
+        "enabled": true,
+        "config": {
+          "llm": { "base_url": "http://localhost:11434/v1", "api_key": "ollama", "model": "qwen2.5:7b" },
+          "embedding": { "base_url": "http://localhost:11434/v1", "api_key": "ollama", "model": "mxbai-embed-large", "dims": 1024 },
+          "graph": { "provider": "flat" },
+          "decay": { "enabled": true }
+        }
+      }
+    }
+  }
+}
+```
+
+### What it does
+
+- **Auto-recall** (`before_prompt_build`): before each agent turn, the plugin searches mem7 for relevant memories and injects them into the system prompt.
+- **Auto-capture** (`agent_end`): after each turn, the user + assistant messages are sent through mem7's fact extraction pipeline, automatically storing new facts and deduplicating against existing ones.
+- **Tools**: the plugin registers `memory_search`, `memory_get`, and `memory_store` tools that the agent can call explicitly.
+- **Forgetting curve**: decay is enabled by default so stale facts naturally fade, while frequently recalled memories stay strong.
+
+See [`packages/openclaw-mem7/`](packages/openclaw-mem7/) for full documentation.
+
 ## Observability (OpenTelemetry)
 
 mem7 integrates with [OpenTelemetry](https://opentelemetry.io/) via `tracing-opentelemetry`. When enabled, every `add()`, `search()`, `get()`, `update()`, `delete()` call emits a trace span that is exported via OTLP/gRPC to any compatible collector (Jaeger, Grafana Tempo, Datadog, etc.).

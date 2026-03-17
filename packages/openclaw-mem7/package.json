@@ -1,0 +1,51 @@
+{
+  "name": "@mem7ai/openclaw-mem7",
+  "version": "0.1.0",
+  "description": "OpenClaw memory plugin powered by mem7 — LLM fact extraction, graph relations, dedup, and Ebbinghaus forgetting curve.",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "openclaw": {
+    "type": "memory",
+    "name": "mem7",
+    "displayName": "Memory (mem7)",
+    "minGatewayVersion": "0.8.0"
+  },
+  "dependencies": {
+    "@mem7ai/mem7": "^0.2.0",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.2.0"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mem7ai/mem7",
+    "directory": "packages/openclaw-mem7"
+  },
+  "keywords": [
+    "openclaw",
+    "memory",
+    "plugin",
+    "mem7",
+    "llm",
+    "forgetting-curve",
+    "graph-memory"
+  ]
+}

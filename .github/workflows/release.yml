@@ -144,6 +144,31 @@ jobs:
           done
           npm publish --access public --ignore-scripts
 
+  # ── Publish OpenClaw plugin to npm ───────────────────────────────
+  publish-openclaw-plugin:
+    name: Publish OpenClaw plugin to npm
+    needs: [publish-npm]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/openclaw-mem7
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      - run: npm install --ignore-scripts
+      - name: Build
+        run: npm run build
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public || echo "⚠ openclaw-mem7 skipped (already published or error)"
+
   # ── Publish Rust crates to crates.io ───────────────────────────────
   publish-crates:
     name: Publish to crates.io

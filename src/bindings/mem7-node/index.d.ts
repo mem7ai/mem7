@@ -16,6 +16,7 @@ export type JsMemoryEngine = MemoryEngine
 
 export interface JsAddResult {
   results: Array<JsMemoryActionResult>
+  relations: Array<JsGraphRelation>
 }
 
 export interface JsChatMessage {
@@ -46,6 +47,13 @@ export interface JsMemoryEvent {
   createdAt: string
 }
 
+export interface JsGraphRelation {
+  source: string
+  relationship: string
+  destination: string
+  score?: number
+}
+
 export interface JsMemoryItem {
   id: string
   text: string
@@ -56,8 +64,11 @@ export interface JsMemoryItem {
   createdAt: string
   updatedAt: string
   score?: number
+  lastAccessedAt?: string
+  accessCount: number
 }
 
 export interface JsSearchResult {
   memories: Array<JsMemoryItem>
+  relations: Array<JsGraphRelation>
 }

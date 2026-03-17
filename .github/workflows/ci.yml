@@ -82,3 +82,20 @@ jobs:
         run: npx napi build -p mem7-node --platform --release
       - name: Smoke test
         run: node -e "const m = require('./index.js'); console.log('MemoryEngine:', typeof m.MemoryEngine)"
+
+  openclaw-plugin-build:
+    name: OpenClaw plugin build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/openclaw-mem7
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - run: npm install --ignore-scripts
+      - name: TypeScript compile
+        run: npx tsc --noEmit
+      - name: Build dist
+        run: npm run build

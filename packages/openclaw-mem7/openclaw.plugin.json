@@ -1,0 +1,102 @@
+{
+  "id": "openclaw-mem7",
+  "kind": "memory",
+  "name": "Memory (mem7)",
+  "description": "LLM-powered long-term memory with fact extraction, graph relations, dedup, and Ebbinghaus forgetting curve.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "llm": {
+        "type": "object",
+        "description": "LLM config for fact extraction and dedup (OpenAI-compatible).",
+        "properties": {
+          "base_url": { "type": "string" },
+          "api_key": { "type": "string" },
+          "model": { "type": "string", "default": "gpt-4.1-nano" },
+          "temperature": { "type": "number", "default": 0.0 },
+          "max_tokens": { "type": "integer", "default": 1000 }
+        },
+        "required": ["base_url", "api_key", "model"]
+      },
+      "embedding": {
+        "type": "object",
+        "description": "Embedding config (OpenAI-compatible or fastembed).",
+        "properties": {
+          "provider": { "type": "string", "default": "openai" },
+          "base_url": { "type": "string" },
+          "api_key": { "type": "string" },
+          "model": { "type": "string", "default": "text-embedding-3-small" },
+          "dims": { "type": "integer", "default": 1536 }
+        },
+        "required": ["model", "dims"]
+      },
+      "vector": {
+        "type": "object",
+        "description": "Vector store config. Defaults to in-memory FlatIndex.",
+        "properties": {
+          "provider": { "type": "string", "enum": ["flat", "upstash"], "default": "flat" },
+          "collection_name": { "type": "string" },
+          "upstash_url": { "type": "string" },
+          "upstash_token": { "type": "string" }
+        }
+      },
+      "graph": {
+        "type": "object",
+        "description": "Graph store config for entity-relation extraction. Omit to disable.",
+        "properties": {
+          "provider": { "type": "string", "enum": ["flat", "neo4j", "kuzu"] },
+          "neo4j_url": { "type": "string" },
+          "neo4j_username": { "type": "string" },
+          "neo4j_password": { "type": "string" },
+          "kuzu_db_path": { "type": "string" }
+        }
+      },
+      "decay": {
+        "type": "object",
+        "description": "Ebbinghaus forgetting curve config. Enabled by default.",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "base_half_life_secs": { "type": "number", "default": 604800.0 },
+          "decay_shape": { "type": "number", "default": 0.8 },
+          "min_retention": { "type": "number", "default": 0.1 },
+          "rehearsal_factor": { "type": "number", "default": 0.5 }
+        }
+      },
+      "autoRecall": {
+        "type": "boolean",
+        "description": "Inject relevant memories into context before each agent turn.",
+        "default": true
+      },
+      "autoRecallLimit": {
+        "type": "integer",
+        "description": "Max memories to inject via auto-recall.",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      },
+      "autoCapture": {
+        "type": "boolean",
+        "description": "Extract and store facts after each agent turn.",
+        "default": true
+      },
+      "userId": {
+        "type": "string",
+        "description": "Override user ID. Defaults to session-derived ID."
+      },
+      "dbPath": {
+        "type": "string",
+        "description": "Base directory for mem7 data (history DB, graph DB).",
+        "default": "~/.openclaw/mem7"
+      }
+    },
+    "required": ["llm", "embedding"]
+  },
+  "uiHints": {
+    "llm.api_key": { "label": "LLM API Key", "sensitive": true },
+    "embedding.api_key": { "label": "Embedding API Key", "sensitive": true },
+    "vector.upstash_token": { "label": "Upstash Token", "sensitive": true },
+    "graph.neo4j_password": { "label": "Neo4j Password", "sensitive": true }
+  }
+}
