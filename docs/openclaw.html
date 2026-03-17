@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Plugin — mem7</title>
+  <meta name="description" content="OpenClaw memory plugin powered by mem7 — LLM fact extraction, graph relations, dedup, and Ebbinghaus forgetting curve.">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- ── Navigation ──────────────────────────────────────────────── -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">
+        <img src="logo.png" alt="mem7" class="logo-img">
+        <span class="logo-text">mem7</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="#install">Install</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#tools">Tools</a>
+        <a href="#config">Config</a>
+        <a href="https://github.com/mem7ai/mem7/tree/main/packages/openclaw-mem7" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <div class="oc-hero-badge">OpenClaw Plugin</div>
+      <h1>Long-term memory<br>for OpenClaw agents</h1>
+      <p class="hero-sub">
+        Replace the built-in memory backend with mem7's LLM-powered fact extraction,
+        vector + graph dual-path recall, automatic deduplication, and Ebbinghaus forgetting curve.
+      </p>
+      <div class="install-tabs">
+        <div class="install-panel active" style="border-radius: var(--radius-sm);">
+          <code>openclaw plugins install @mem7ai/openclaw-mem7</code>
+          <button class="copy-btn" data-copy="openclaw plugins install @mem7ai/openclaw-mem7" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── What You Get ────────────────────────────────────────────── -->
+  <section id="install" class="section">
+    <div class="container">
+      <h2>What You Get</h2>
+      <p class="section-sub">Drop-in memory upgrade for any OpenClaw agent. No code changes needed.</p>
+
+      <div class="features-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <h3>Auto-Recall</h3>
+          <p>Before each agent turn, relevant memories are searched and injected into the system prompt automatically. The agent always has context.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </div>
+          <h3>Auto-Capture</h3>
+          <p>After each turn, user + assistant messages are processed through LLM fact extraction. New facts are stored, duplicates are merged.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><line x1="8.5" y1="7.5" x2="15.5" y2="7.5"/><line x1="7.5" y1="8.5" x2="10.5" y2="15.5"/><line x1="16.5" y1="8.5" x2="13.5" y2="15.5"/></svg>
+          </div>
+          <h3>Graph Relations</h3>
+          <p>Entities and relations are extracted and stored in a graph database. The agent sees both facts and connections.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Forgetting Curve</h3>
+          <p>Enabled by default. Stale facts fade over time; frequently recalled memories grow stronger. No manual cleanup needed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How It Works ────────────────────────────────────────────── -->
+  <section id="how-it-works" class="section section-alt">
+    <div class="container">
+      <h2>How It Works</h2>
+      <p class="section-sub">Two lifecycle hooks and three tools — that's the entire integration surface.</p>
+
+      <div class="oc-flow">
+        <div class="oc-flow-card">
+          <div class="oc-flow-header">
+            <span class="oc-flow-num">1</span>
+            <span class="oc-flow-title">User sends a message</span>
+          </div>
+          <div class="oc-flow-body">OpenClaw agent receives the message and fires the <code>before_prompt_build</code> hook.</div>
+        </div>
+        <div class="oc-flow-arrow">
+          <svg width="2" height="28" viewBox="0 0 2 28"><line x1="1" y1="0" x2="1" y2="22" stroke="var(--accent)" stroke-width="2"/><polygon points="1,28 -3,22 5,22" fill="var(--accent)"/></svg>
+        </div>
+        <div class="oc-flow-card oc-flow-accent">
+          <div class="oc-flow-header">
+            <span class="oc-flow-num">2</span>
+            <span class="oc-flow-title">Auto-Recall</span>
+          </div>
+          <div class="oc-flow-body">The plugin calls <code>mem7.search(query)</code>, formats top memories + graph relations, and injects them into the system prompt as <code>&lt;mem7_context&gt;</code>.</div>
+        </div>
+        <div class="oc-flow-arrow">
+          <svg width="2" height="28" viewBox="0 0 2 28"><line x1="1" y1="0" x2="1" y2="22" stroke="var(--accent)" stroke-width="2"/><polygon points="1,28 -3,22 5,22" fill="var(--accent)"/></svg>
+        </div>
+        <div class="oc-flow-card">
+          <div class="oc-flow-header">
+            <span class="oc-flow-num">3</span>
+            <span class="oc-flow-title">Agent responds</span>
+          </div>
+          <div class="oc-flow-body">The LLM generates a response with full memory context. It can also call <code>memory_search</code>, <code>memory_get</code>, or <code>memory_store</code> explicitly.</div>
+        </div>
+        <div class="oc-flow-arrow">
+          <svg width="2" height="28" viewBox="0 0 2 28"><line x1="1" y1="0" x2="1" y2="22" stroke="var(--accent)" stroke-width="2"/><polygon points="1,28 -3,22 5,22" fill="var(--accent)"/></svg>
+        </div>
+        <div class="oc-flow-card oc-flow-accent">
+          <div class="oc-flow-header">
+            <span class="oc-flow-num">4</span>
+            <span class="oc-flow-title">Auto-Capture</span>
+          </div>
+          <div class="oc-flow-body">After the turn, the <code>agent_end</code> hook sends user + assistant messages through mem7's fact extraction pipeline. New facts stored, duplicates merged. Fire-and-forget — never blocks the response.</div>
+        </div>
+      </div>
+
+      <!-- Context injection example -->
+      <div class="oc-context-example">
+        <h3>Injected Context Example</h3>
+        <div class="code-card">
+          <div class="code-header">
+            <span class="code-filename">System prompt prepend</span>
+          </div>
+<pre><code><span class="cmt">&lt;mem7_context&gt;</span>
+<span class="kw">## Relevant memories about this user:</span>
+- [2026-03-15] Alice loves playing tennis <span class="num">(score: 0.92)</span>
+- [2026-03-10] Alice's coach is Sarah <span class="num">(score: 0.87)</span>
+- [2026-02-28] Alice is allergic to dairy <span class="num">(score: 0.74)</span>
+
+<span class="kw">## Known relations:</span>
+- Alice <span class="str">-[loves_playing]-></span> tennis
+- Alice <span class="str">-[coached_by]-></span> Sarah
+- Alice <span class="str">-[allergic_to]-></span> dairy
+<span class="cmt">&lt;/mem7_context&gt;</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Tools ───────────────────────────────────────────────────── -->
+  <section id="tools" class="section">
+    <div class="container">
+      <h2>Registered Tools</h2>
+      <p class="section-sub">Three tools the agent can call explicitly, alongside the automatic hooks.</p>
+
+      <div class="oc-tools-grid">
+        <div class="oc-tool-card">
+          <div class="oc-tool-header">
+            <code class="oc-tool-name">memory_search</code>
+            <span class="oc-tool-badge">contract</span>
+          </div>
+          <p>Search long-term memory for facts, preferences, and relations relevant to a query.</p>
+          <div class="oc-tool-params">
+            <div class="oc-tool-param">
+              <code>query</code> <span class="oc-tool-type">string</span>
+              <span class="oc-tool-required">required</span>
+            </div>
+            <div class="oc-tool-param">
+              <code>limit</code> <span class="oc-tool-type">integer</span>
+              <span class="oc-tool-default">default: 5</span>
+            </div>
+          </div>
+          <div class="oc-tool-returns">Returns scored memories + graph relations</div>
+        </div>
+
+        <div class="oc-tool-card">
+          <div class="oc-tool-header">
+            <code class="oc-tool-name">memory_get</code>
+            <span class="oc-tool-badge">contract</span>
+          </div>
+          <p>Retrieve a specific memory by UUID, or pass <code>"all"</code> to list all stored memories.</p>
+          <div class="oc-tool-params">
+            <div class="oc-tool-param">
+              <code>path</code> <span class="oc-tool-type">string</span>
+              <span class="oc-tool-required">required</span>
+            </div>
+            <div class="oc-tool-param">
+              <code>lines</code> <span class="oc-tool-type">integer</span>
+              <span class="oc-tool-default">default: 50</span>
+            </div>
+          </div>
+          <div class="oc-tool-returns">Returns memory details or paginated list</div>
+        </div>
+
+        <div class="oc-tool-card">
+          <div class="oc-tool-header">
+            <code class="oc-tool-name">memory_store</code>
+            <span class="oc-tool-badge oc-tool-badge-custom">custom</span>
+          </div>
+          <p>Explicitly store a fact into long-term memory. Processed through LLM extraction and dedup.</p>
+          <div class="oc-tool-params">
+            <div class="oc-tool-param">
+              <code>text</code> <span class="oc-tool-type">string</span>
+              <span class="oc-tool-required">required</span>
+            </div>
+            <div class="oc-tool-param">
+              <code>userId</code> <span class="oc-tool-type">string</span>
+              <span class="oc-tool-default">optional override</span>
+            </div>
+          </div>
+          <div class="oc-tool-returns">Returns extraction actions (ADD/UPDATE/NOOP)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Configuration ───────────────────────────────────────────── -->
+  <section id="config" class="section section-alt">
+    <div class="container">
+      <h2>Configuration</h2>
+      <p class="section-sub">Add the plugin to your <code>~/.openclaw/openclaw.json</code>.</p>
+
+      <div class="code-card" style="margin-bottom: 40px;">
+        <div class="code-header">
+          <span class="code-filename">~/.openclaw/openclaw.json</span>
+          <button class="copy-btn" data-copy-code="oc-config" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+<pre><code id="code-oc-config">{
+  <span class="str">"plugins"</span>: {
+    <span class="str">"slots"</span>: { <span class="str">"memory"</span>: <span class="str">"openclaw-mem7"</span> },
+    <span class="str">"entries"</span>: {
+      <span class="str">"openclaw-mem7"</span>: {
+        <span class="str">"enabled"</span>: <span class="num">true</span>,
+        <span class="str">"config"</span>: {
+          <span class="str">"llm"</span>: {
+            <span class="str">"base_url"</span>: <span class="str">"http://localhost:11434/v1"</span>,
+            <span class="str">"api_key"</span>: <span class="str">"ollama"</span>,
+            <span class="str">"model"</span>: <span class="str">"qwen2.5:7b"</span>
+          },
+          <span class="str">"embedding"</span>: {
+            <span class="str">"base_url"</span>: <span class="str">"http://localhost:11434/v1"</span>,
+            <span class="str">"api_key"</span>: <span class="str">"ollama"</span>,
+            <span class="str">"model"</span>: <span class="str">"mxbai-embed-large"</span>,
+            <span class="str">"dims"</span>: <span class="num">1024</span>
+          },
+          <span class="str">"graph"</span>: { <span class="str">"provider"</span>: <span class="str">"flat"</span> },
+          <span class="str">"decay"</span>: { <span class="str">"enabled"</span>: <span class="num">true</span> }
+        }
+      }
+    }
+  }
+}</code></pre>
+      </div>
+
+      <h3 style="text-align: center; font-size: 22px; margin-bottom: 8px;">Config Reference</h3>
+      <p class="section-sub">All fields except <code>llm</code> and <code>embedding</code> are optional.</p>
+
+      <div class="decay-params-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>llm</code></td>
+              <td><em>required</em></td>
+              <td>LLM config for fact extraction and dedup (OpenAI-compatible)</td>
+            </tr>
+            <tr>
+              <td><code>embedding</code></td>
+              <td><em>required</em></td>
+              <td>Embedding provider config</td>
+            </tr>
+            <tr>
+              <td><code>vector</code></td>
+              <td><code>{ provider: "flat" }</code></td>
+              <td>Vector store backend — <code>flat</code> (in-memory) or <code>upstash</code></td>
+            </tr>
+            <tr>
+              <td><code>graph</code></td>
+              <td><em>disabled</em></td>
+              <td>Graph store — <code>flat</code>, <code>neo4j</code>, or <code>kuzu</code></td>
+            </tr>
+            <tr>
+              <td><code>decay</code></td>
+              <td><code>{ enabled: true }</code></td>
+              <td>Forgetting curve parameters (enabled by default in plugin)</td>
+            </tr>
+            <tr>
+              <td><code>autoRecall</code></td>
+              <td><code>true</code></td>
+              <td>Inject relevant memories before each agent turn</td>
+            </tr>
+            <tr>
+              <td><code>autoRecallLimit</code></td>
+              <td><code>5</code></td>
+              <td>Max memories to inject via auto-recall</td>
+            </tr>
+            <tr>
+              <td><code>autoCapture</code></td>
+              <td><code>true</code></td>
+              <td>Extract and store facts after each agent turn</td>
+            </tr>
+            <tr>
+              <td><code>userId</code></td>
+              <td><em>session-derived</em></td>
+              <td>Override user ID for memory isolation</td>
+            </tr>
+            <tr>
+              <td><code>dbPath</code></td>
+              <td><code>~/.openclaw/mem7</code></td>
+              <td>Base directory for SQLite history DB and graph data</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Architecture ────────────────────────────────────────────── -->
+  <section class="section">
+    <div class="container">
+      <h2>Architecture</h2>
+      <p class="section-sub">The plugin sits between the OpenClaw agent runtime and the mem7 Rust engine.</p>
+
+      <div class="oc-arch">
+        <div class="oc-arch-layer oc-arch-openclaw">
+          <div class="oc-arch-label">OpenClaw Agent Runtime</div>
+          <div class="oc-arch-items">
+            <span>User messages</span>
+            <span>Tool calls</span>
+            <span>Lifecycle hooks</span>
+          </div>
+        </div>
+        <div class="oc-arch-connector">
+          <svg width="2" height="32" viewBox="0 0 2 32"><line x1="1" y1="0" x2="1" y2="24" stroke="var(--accent)" stroke-width="2"/><polygon points="1,32 -3,24 5,24" fill="var(--accent)"/></svg>
+        </div>
+        <div class="oc-arch-layer oc-arch-plugin">
+          <div class="oc-arch-label" style="color: var(--accent);">openclaw-mem7 plugin</div>
+          <div class="oc-arch-items">
+            <span>before_prompt_build</span>
+            <span>agent_end</span>
+            <span>memory_search</span>
+            <span>memory_get</span>
+            <span>memory_store</span>
+          </div>
+        </div>
+        <div class="oc-arch-connector">
+          <svg width="2" height="32" viewBox="0 0 2 32"><line x1="1" y1="0" x2="1" y2="24" stroke="var(--accent)" stroke-width="2"/><polygon points="1,32 -3,24 5,24" fill="var(--accent)"/></svg>
+        </div>
+        <div class="oc-arch-layer oc-arch-mem7">
+          <div class="oc-arch-label">mem7 Engine <span style="color: var(--text-3); font-weight: 400; font-size: 13px;">(Rust via napi-rs)</span></div>
+          <div class="oc-arch-items">
+            <span>Vector Search</span>
+            <span>Graph Search</span>
+            <span>LLM Dedup</span>
+            <span>Forgetting Curve</span>
+            <span>Audit Trail</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="oc-design-decisions">
+        <h3 style="text-align: center; font-size: 22px; margin-bottom: 24px;">Design Decisions</h3>
+        <div class="decay-details-grid">
+          <div class="decay-detail-card">
+            <h4>Decay On by Default</h4>
+            <p>Unlike standalone mem7, the plugin enables the forgetting curve by default. Long-running OpenClaw sessions accumulate stale facts quickly — decay keeps them fresh.</p>
+          </div>
+          <div class="decay-detail-card">
+            <h4>System Prompt Injection</h4>
+            <p>Auto-recall injects via system prompt, not tool calls. This ensures every turn has context without relying on the agent to call <code>memory_search</code> explicitly.</p>
+          </div>
+          <div class="decay-detail-card">
+            <h4>Fire-and-Forget Capture</h4>
+            <p>Auto-capture is fully async. Errors are logged but never block the user-facing response. Memory extraction happens in the background after each turn.</p>
+          </div>
+          <div class="decay-detail-card">
+            <h4>No File-Based Fallback</h4>
+            <p>Unlike other OpenClaw memory plugins that use Markdown files, this plugin fully replaces the memory backend. No <code>MEMORY.md</code> is used.</p>
+          </div>
+          <div class="decay-detail-card">
+            <h4>User ID Isolation</h4>
+            <p>User ID is derived from the OpenClaw session key automatically. Multi-user setups (e.g. WhatsApp, Telegram) get isolated memory spaces with zero config.</p>
+          </div>
+          <div class="decay-detail-card">
+            <h4>Credential Resolution</h4>
+            <p>If you omit API keys from the plugin config, it falls back to keys already configured in OpenClaw's model providers — no double-configuration needed.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <img src="logo.png" alt="mem7" class="logo-img logo-img-sm">
+        <span>mem7 &mdash; Apache-2.0</span>
+      </div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="https://github.com/mem7ai/mem7" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://www.npmjs.com/package/@mem7ai/openclaw-mem7" target="_blank" rel="noopener">npm</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
