@@ -41,7 +41,7 @@ pub async fn extract_facts(
         }
     });
 
-    let today = today_date();
+    let today = mem7_datetime::today_date();
 
     let conversation = messages
         .iter()
@@ -62,27 +62,10 @@ pub async fn extract_facts(
 
     debug!(raw_response = %response.content, "fact extraction response");
 
-    let output: FactExtractionOutput = parse_json_response(&response.content)?;
+    let output: FactExtractionOutput =
+        mem7_core::parse_json_response(&response.content).map_err(Mem7Error::Serialization)?;
 
     Ok(output.facts.into_iter().map(|text| Fact { text }).collect())
-}
-
-fn today_date() -> String {
-    let d = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    let days = d.as_secs() / 86400;
-    let z = days + 719468;
-    let era = z / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
-    format!("{y:04}-{m:02}-{d:02}")
 }
 
 /// Ask the LLM to decide how to update memory given new facts and existing memories.
@@ -113,24 +96,4 @@ pub async fn decide_memory_updates(
     let update_resp = parse_memory_update_response(&response.content)?;
 
     Ok((update_resp, id_mapping))
-}
-
-fn parse_json_response<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T> {
-    let trimmed = raw.trim();
-    let cleaned = if trimmed.starts_with("```json") {
-        trimmed
-            .trim_start_matches("```json")
-            .trim_end_matches("```")
-            .trim()
-    } else if trimmed.starts_with("```") {
-        trimmed
-            .trim_start_matches("```")
-            .trim_end_matches("```")
-            .trim()
-    } else {
-        trimmed
-    };
-
-    serde_json::from_str(cleaned)
-        .map_err(|e| Mem7Error::Serialization(format!("JSON parse error: {e}\nRaw: {raw}")))
 }

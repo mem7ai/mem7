@@ -578,4 +578,6 @@ if (!nativeBinding) {
 module.exports = nativeBinding
 module.exports.MemoryEngine = nativeBinding.MemoryEngine
 module.exports.JsMemoryEngine = nativeBinding.JsMemoryEngine
+module.exports.initTelemetry = nativeBinding.initTelemetry
 module.exports.JsMemoryAction = nativeBinding.JsMemoryAction
+module.exports.shutdownTelemetry = nativeBinding.shutdownTelemetry

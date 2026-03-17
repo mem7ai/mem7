@@ -24,7 +24,7 @@ fn dot_product(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
 }
 
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     let dot = dot_product(a, b);
     let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
     let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();

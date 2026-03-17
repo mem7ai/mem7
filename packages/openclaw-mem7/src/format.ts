@@ -1,14 +1,14 @@
 export interface MemoryItem {
   id: string;
   text: string;
-  userId?: string;
-  agentId?: string;
-  runId?: string;
-  metadata: string;
+  userId?: string | null;
+  agentId?: string | null;
+  runId?: string | null;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
-  score?: number;
-  lastAccessedAt?: string;
+  score?: number | null;
+  lastAccessedAt?: string | null;
   accessCount: number;
 }
 

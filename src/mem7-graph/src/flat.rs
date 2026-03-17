@@ -57,14 +57,6 @@ impl Default for FlatGraph {
     }
 }
 
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
-    let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
-    let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-    let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-    let denom = norm_a * norm_b;
-    if denom == 0.0 { 0.0 } else { dot / denom }
-}
-
 fn matches_filter(
     user_id: &Option<String>,
     agent_id: &Option<String>,
@@ -92,7 +84,7 @@ fn matches_filter(
 #[async_trait]
 impl GraphStore for FlatGraph {
     async fn add_entities(&self, entities: &[Entity], filter: &MemoryFilter) -> Result<()> {
-        let mut store = self.entities.write().unwrap();
+        let mut store = self.entities.write().expect("entity lock poisoned");
         for entity in entities {
             if let Some(existing) = store.iter_mut().find(|e| {
                 e.name == entity.name && matches_filter(&e.user_id, &e.agent_id, &e.run_id, filter)
@@ -129,7 +121,7 @@ impl GraphStore for FlatGraph {
     ) -> Result<()> {
         self.add_entities(entities, filter).await?;
 
-        let mut store = self.relations.write().unwrap();
+        let mut store = self.relations.write().expect("relation lock poisoned");
         for r in relations {
             if let Some(existing) = store.iter_mut().find(|e| {
                 e.source == r.source
@@ -163,7 +155,7 @@ impl GraphStore for FlatGraph {
         filter: &MemoryFilter,
         limit: usize,
     ) -> Result<Vec<GraphSearchResult>> {
-        let store = self.relations.read().unwrap();
+        let store = self.relations.read().expect("relation lock poisoned");
         let query_lower = query.to_lowercase();
 
         let results: Vec<GraphSearchResult> = store
@@ -197,7 +189,7 @@ impl GraphStore for FlatGraph {
         threshold: f32,
         limit: usize,
     ) -> Result<Vec<GraphSearchResult>> {
-        let entities = self.entities.read().unwrap();
+        let entities = self.entities.read().expect("entity lock poisoned");
 
         // Find entities whose embedding is above the similarity threshold
         let matched_names: Vec<(&str, f32)> = entities
@@ -205,7 +197,7 @@ impl GraphStore for FlatGraph {
             .filter(|e| matches_filter(&e.user_id, &e.agent_id, &e.run_id, filter))
             .filter_map(|e| {
                 e.embedding.as_ref().map(|emb| {
-                    let sim = cosine_similarity(emb, embedding);
+                    let sim = mem7_vector::cosine_similarity(emb, embedding);
                     (e.name.as_str(), sim)
                 })
             })
@@ -217,7 +209,7 @@ impl GraphStore for FlatGraph {
         }
 
         // 1-hop: collect all valid relations touching matched entities
-        let relations = self.relations.read().unwrap();
+        let relations = self.relations.read().expect("relation lock poisoned");
         let mut results: Vec<GraphSearchResult> = Vec::new();
         let mut seen = std::collections::HashSet::new();
 
@@ -263,7 +255,7 @@ impl GraphStore for FlatGraph {
         triples: &[(String, String, String)],
         filter: &MemoryFilter,
     ) -> Result<()> {
-        let mut store = self.relations.write().unwrap();
+        let mut store = self.relations.write().expect("relation lock poisoned");
         for r in store.iter_mut() {
             if !matches_filter(&r.user_id, &r.agent_id, &r.run_id, filter) {
                 continue;
@@ -283,7 +275,7 @@ impl GraphStore for FlatGraph {
         filter: &MemoryFilter,
         now: &str,
     ) -> Result<()> {
-        let mut store = self.relations.write().unwrap();
+        let mut store = self.relations.write().expect("relation lock poisoned");
         for r in store.iter_mut() {
             if !r.valid || !matches_filter(&r.user_id, &r.agent_id, &r.run_id, filter) {
                 continue;
@@ -299,7 +291,7 @@ impl GraphStore for FlatGraph {
     }
 
     async fn delete_all(&self, filter: &MemoryFilter) -> Result<()> {
-        let mut rel_store = self.relations.write().unwrap();
+        let mut rel_store = self.relations.write().expect("relation lock poisoned");
         rel_store.retain(|r| {
             if let Some(uid) = &filter.user_id {
                 if r.user_id.as_deref() == Some(uid.as_str()) {
@@ -309,7 +301,7 @@ impl GraphStore for FlatGraph {
             true
         });
 
-        let mut ent_store = self.entities.write().unwrap();
+        let mut ent_store = self.entities.write().expect("entity lock poisoned");
         ent_store.retain(|e| {
             if let Some(uid) = &filter.user_id {
                 if e.user_id.as_deref() == Some(uid.as_str()) {
@@ -323,8 +315,11 @@ impl GraphStore for FlatGraph {
     }
 
     async fn reset(&self) -> Result<()> {
-        self.relations.write().unwrap().clear();
-        self.entities.write().unwrap().clear();
+        self.relations
+            .write()
+            .expect("relation lock poisoned")
+            .clear();
+        self.entities.write().expect("entity lock poisoned").clear();
         Ok(())
     }
 }

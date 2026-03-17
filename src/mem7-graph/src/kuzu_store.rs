@@ -64,7 +64,8 @@ impl KuzuGraphStore {
     }
 }
 
-fn cosine_similarity(a: &[f64], b: &[f32]) -> f32 {
+/// Kuzu stores embeddings as `f64[]`, so we need a mixed-precision adapter.
+fn cosine_similarity_f64(a: &[f64], b: &[f32]) -> f32 {
     let dot: f64 = a.iter().zip(b.iter()).map(|(x, y)| *x * (*y as f64)).sum();
     let norm_a = a.iter().map(|x| x * x).sum::<f64>().sqrt();
     let norm_b = b
@@ -300,7 +301,7 @@ impl GraphStore for KuzuGraphStore {
                     if emb_vec.is_empty() {
                         continue;
                     }
-                    let sim = cosine_similarity(&emb_vec, &embedding);
+                    let sim = cosine_similarity_f64(&emb_vec, &embedding);
                     if sim >= threshold {
                         matched_entities.push((name, sim));
                     }
@@ -466,7 +467,9 @@ impl GraphStore for KuzuGraphStore {
                     escape_cypher(dst),
                     escape_cypher(&now),
                 );
-                let _ = conn.query(&cypher);
+                if let Err(e) = conn.query(&cypher) {
+                    tracing::warn!(src = %src, dst = %dst, "kuzu rehearsal query failed: {e}");
+                }
             }
 
             debug!(count = triples.len(), "kuzu: relations rehearsed");

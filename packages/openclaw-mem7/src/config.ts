@@ -45,6 +45,20 @@ export interface PluginConfig {
   dbPath?: string;
 }
 
+export interface ToolDefinition {
+  id: string;
+  name: string;
+  description: string;
+  parameters: unknown;
+  execute(args: Record<string, unknown>): Promise<unknown>;
+}
+
+export interface ServiceDefinition {
+  id: string;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+
 export interface OpenClawPluginApi {
   pluginConfig?: Record<string, unknown>;
   config?: {
@@ -58,13 +72,9 @@ export interface OpenClawPluginApi {
     error(msg: string, ...args: unknown[]): void;
     debug(msg: string, ...args: unknown[]): void;
   };
-  registerService(service: {
-    id: string;
-    start(): Promise<void>;
-    stop(): Promise<void>;
-  }): void;
-  registerTool(tool: unknown): void;
-  on(event: string, handler: (...args: unknown[]) => unknown): void;
+  registerService(service: ServiceDefinition): void;
+  registerTool(tool: ToolDefinition): void;
+  on(event: string, handler: (event: unknown) => Promise<unknown> | void): void;
   runtime?: {
     sessionKey?: string;
   };

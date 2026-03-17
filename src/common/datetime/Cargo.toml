@@ -1,0 +1,9 @@
+[package]
+name = "mem7-datetime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Zero-dependency date/time utilities for the mem7 memory engine"
+
+[dependencies]

@@ -109,6 +109,67 @@ pub struct MemoryFilter {
     pub metadata: Option<serde_json::Value>,
 }
 
+/// Options for the `MemoryEngine::add()` method.
+#[derive(Debug, Clone, Default)]
+pub struct AddOptions<'a> {
+    pub user_id: Option<&'a str>,
+    pub agent_id: Option<&'a str>,
+    pub run_id: Option<&'a str>,
+    pub metadata: Option<&'a serde_json::Value>,
+    pub infer: bool,
+}
+
+impl<'a> AddOptions<'a> {
+    pub fn new() -> Self {
+        Self {
+            infer: true,
+            ..Default::default()
+        }
+    }
+}
+
+/// Options for the `MemoryEngine::search()` method.
+#[derive(Debug, Clone)]
+pub struct SearchOptions<'a> {
+    pub user_id: Option<&'a str>,
+    pub agent_id: Option<&'a str>,
+    pub run_id: Option<&'a str>,
+    pub limit: usize,
+    pub filters: Option<&'a serde_json::Value>,
+    pub rerank: bool,
+    pub threshold: Option<f32>,
+}
+
+impl<'a> Default for SearchOptions<'a> {
+    fn default() -> Self {
+        Self {
+            user_id: None,
+            agent_id: None,
+            run_id: None,
+            limit: 5,
+            filters: None,
+            rerank: true,
+            threshold: None,
+        }
+    }
+}
+
+impl MemoryFilter {
+    /// Create a filter from session identifiers, the most common construction pattern.
+    pub fn from_session(
+        user_id: Option<&str>,
+        agent_id: Option<&str>,
+        run_id: Option<&str>,
+    ) -> Self {
+        Self {
+            user_id: user_id.map(String::from),
+            agent_id: agent_id.map(String::from),
+            run_id: run_id.map(String::from),
+            metadata: None,
+        }
+    }
+}
+
 /// A chat message in the conversation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {

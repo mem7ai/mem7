@@ -24,8 +24,8 @@
 
 // ── Core types ───────────────────────────────────────────────────────
 pub use mem7_core::{
-    AddResult, ChatMessage, Fact, GraphRelation, MemoryAction, MemoryActionResult, MemoryEvent,
-    MemoryFilter, MemoryItem, SearchResult, new_memory_id,
+    AddOptions, AddResult, ChatMessage, Fact, GraphRelation, MemoryAction, MemoryActionResult,
+    MemoryEvent, MemoryFilter, MemoryItem, SearchOptions, SearchResult, new_memory_id,
 };
 
 // ── Configuration ────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ pub use mem7_config::{
 pub use mem7_error::{Mem7Error, Result};
 
 // ── Engine ───────────────────────────────────────────────────────────
-pub use mem7_store::MemoryEngine;
+pub use mem7_store::{MemoryEngine, MemoryEngineBuilder};
 
 // ── Provider traits & built-in implementations ───────────────────────
 
@@ -61,9 +61,9 @@ pub mod vector {
     };
 }
 
-/// SQLite-backed audit history.
+/// Audit history trait and built-in SQLite implementation.
 pub mod history {
-    pub use mem7_history::SqliteHistory;
+    pub use mem7_history::{HistoryStore, SqliteHistory};
 }
 
 /// Reranker trait and built-in implementations (Cohere, LLM-based).

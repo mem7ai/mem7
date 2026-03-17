@@ -14,6 +14,8 @@ export declare class MemoryEngine {
 }
 export type JsMemoryEngine = MemoryEngine
 
+export declare function initTelemetry(configJson?: string | undefined | null): void
+
 export interface JsAddResult {
   results: Array<JsMemoryActionResult>
   relations: Array<JsGraphRelation>
@@ -22,6 +24,13 @@ export interface JsAddResult {
 export interface JsChatMessage {
   role: string
   content: string
+}
+
+export interface JsGraphRelation {
+  source: string
+  relationship: string
+  destination: string
+  score?: number
 }
 
 export declare const enum JsMemoryAction {
@@ -47,13 +56,6 @@ export interface JsMemoryEvent {
   createdAt: string
 }
 
-export interface JsGraphRelation {
-  source: string
-  relationship: string
-  destination: string
-  score?: number
-}
-
 export interface JsMemoryItem {
   id: string
   text: string
@@ -72,3 +74,5 @@ export interface JsSearchResult {
   memories: Array<JsMemoryItem>
   relations: Array<JsGraphRelation>
 }
+
+export declare function shutdownTelemetry(): void

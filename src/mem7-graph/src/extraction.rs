@@ -155,23 +155,7 @@ pub async fn extract_deletions(
 }
 
 fn parse_json_response<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T> {
-    let trimmed = raw.trim();
-    let cleaned = if trimmed.starts_with("```json") {
-        trimmed
-            .trim_start_matches("```json")
-            .trim_end_matches("```")
-            .trim()
-    } else if trimmed.starts_with("```") {
-        trimmed
-            .trim_start_matches("```")
-            .trim_end_matches("```")
-            .trim()
-    } else {
-        trimmed
-    };
-
-    serde_json::from_str(cleaned)
-        .map_err(|e| Mem7Error::Graph(format!("JSON parse error: {e}\nRaw: {raw}")))
+    mem7_core::parse_json_response(raw).map_err(Mem7Error::Graph)
 }
 
 #[cfg(test)]

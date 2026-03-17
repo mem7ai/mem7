@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "src/common/error",
     "src/common/config",
+    "src/common/datetime",
     "src/mem7-core",
     "src/mem7-llm",
     "src/mem7-embedding",
@@ -31,6 +32,7 @@ description = "LLM-powered long-term memory engine — Rust core with multi-lang
 # Internal crates
 mem7-error = { path = "src/common/error", version = "0.3.0" }
 mem7-config = { path = "src/common/config", version = "0.3.0" }
+mem7-datetime = { path = "src/common/datetime", version = "0.3.0" }
 mem7-core = { path = "src/mem7-core", version = "0.3.0" }
 mem7-llm = { path = "src/mem7-llm", version = "0.3.0" }
 mem7-embedding = { path = "src/mem7-embedding", version = "0.3.0" }

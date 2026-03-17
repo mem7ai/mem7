@@ -1,8 +1,11 @@
+use async_trait::async_trait;
 use mem7_core::{MemoryAction, MemoryEvent, new_memory_id};
 use mem7_error::Result;
 use rusqlite::params;
 use tokio_rusqlite::Connection;
 use uuid::Uuid;
+
+use crate::HistoryStore;
 
 /// Async SQLite-backed audit trail for memory operations.
 pub struct SqliteHistory {
@@ -35,8 +38,11 @@ impl SqliteHistory {
 
         Ok(Self { conn })
     }
+}
 
-    pub async fn add_event(
+#[async_trait]
+impl HistoryStore for SqliteHistory {
+    async fn add_event(
         &self,
         memory_id: Uuid,
         old_value: Option<&str>,
@@ -81,7 +87,7 @@ impl SqliteHistory {
         })
     }
 
-    pub async fn get_history(&self, memory_id: Uuid) -> Result<Vec<MemoryEvent>> {
+    async fn get_history(&self, memory_id: Uuid) -> Result<Vec<MemoryEvent>> {
         let events = self
             .conn
             .call(move |conn| {
@@ -123,7 +129,7 @@ impl SqliteHistory {
         Ok(events)
     }
 
-    pub async fn reset(&self) -> Result<()> {
+    async fn reset(&self) -> Result<()> {
         self.conn
             .call(|conn| {
                 conn.execute("DELETE FROM memory_history", [])?;
@@ -131,5 +137,74 @@ impl SqliteHistory {
             })
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn in_memory_history() -> SqliteHistory {
+        SqliteHistory::new(":memory:").await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn add_and_retrieve_event() {
+        let h = in_memory_history().await;
+        let mid = mem7_core::new_memory_id();
+
+        let event = h
+            .add_event(mid, None, Some("hello world"), MemoryAction::Add)
+            .await
+            .unwrap();
+
+        assert_eq!(event.memory_id, mid);
+        assert_eq!(event.action, MemoryAction::Add);
+        assert_eq!(event.new_value.as_deref(), Some("hello world"));
+        assert!(event.old_value.is_none());
+        assert!(!event.created_at.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_history_returns_ordered() {
+        let h = in_memory_history().await;
+        let mid = mem7_core::new_memory_id();
+
+        h.add_event(mid, None, Some("v1"), MemoryAction::Add)
+            .await
+            .unwrap();
+        h.add_event(mid, Some("v1"), Some("v2"), MemoryAction::Update)
+            .await
+            .unwrap();
+        h.add_event(mid, Some("v2"), None, MemoryAction::Delete)
+            .await
+            .unwrap();
+
+        let events = h.get_history(mid).await.unwrap();
+        assert_eq!(events.len(), 3);
+        assert_eq!(events[0].action, MemoryAction::Add);
+        assert_eq!(events[1].action, MemoryAction::Update);
+        assert_eq!(events[2].action, MemoryAction::Delete);
+    }
+
+    #[tokio::test]
+    async fn get_history_empty_for_unknown_id() {
+        let h = in_memory_history().await;
+        let events = h.get_history(mem7_core::new_memory_id()).await.unwrap();
+        assert!(events.is_empty());
+    }
+
+    #[tokio::test]
+    async fn reset_clears_all() {
+        let h = in_memory_history().await;
+        let mid = mem7_core::new_memory_id();
+        h.add_event(mid, None, Some("data"), MemoryAction::Add)
+            .await
+            .unwrap();
+
+        h.reset().await.unwrap();
+
+        let events = h.get_history(mid).await.unwrap();
+        assert!(events.is_empty());
     }
 }

@@ -283,3 +283,120 @@ pub struct MemoryEngineConfig {
     pub custom_fact_extraction_prompt: Option<String>,
     pub custom_update_memory_prompt: Option<String>,
 }
+
+impl MemoryEngineConfig {
+    /// Validate configuration values. Returns a list of human-readable problems.
+    /// An empty list means the config is valid.
+    pub fn validate(&self) -> Vec<String> {
+        let mut errors = Vec::new();
+
+        if self.llm.base_url.is_empty() {
+            errors.push("llm.base_url must not be empty".into());
+        }
+        if self.llm.model.is_empty() {
+            errors.push("llm.model must not be empty".into());
+        }
+
+        if self.embedding.base_url.is_empty() {
+            errors.push("embedding.base_url must not be empty".into());
+        }
+        if self.embedding.model.is_empty() {
+            errors.push("embedding.model must not be empty".into());
+        }
+
+        if let Some(decay) = &self.decay
+            && decay.enabled
+        {
+            if decay.base_half_life_secs <= 0.0 {
+                errors.push("decay.base_half_life_secs must be > 0".into());
+            }
+            if !(0.0..=1.0).contains(&decay.decay_shape) {
+                errors.push("decay.decay_shape must be in [0.0, 1.0]".into());
+            }
+            if !(0.0..=1.0).contains(&decay.min_retention) {
+                errors.push("decay.min_retention must be in [0.0, 1.0]".into());
+            }
+        }
+
+        errors
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_config_validates() {
+        let cfg = MemoryEngineConfig::default();
+        let errors = cfg.validate();
+        assert!(
+            errors.is_empty(),
+            "default config should be valid: {errors:?}"
+        );
+    }
+
+    #[test]
+    fn empty_llm_fields_rejected() {
+        let mut cfg = MemoryEngineConfig::default();
+        cfg.llm.base_url = String::new();
+        cfg.llm.model = String::new();
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("llm.base_url")));
+        assert!(errors.iter().any(|e| e.contains("llm.model")));
+    }
+
+    #[test]
+    fn empty_embedding_fields_rejected() {
+        let mut cfg = MemoryEngineConfig::default();
+        cfg.embedding.base_url = String::new();
+        cfg.embedding.model = String::new();
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("embedding.base_url")));
+        assert!(errors.iter().any(|e| e.contains("embedding.model")));
+    }
+
+    #[test]
+    fn disabled_decay_not_validated() {
+        let cfg = MemoryEngineConfig {
+            decay: Some(DecayConfig {
+                enabled: false,
+                base_half_life_secs: -1.0,
+                decay_shape: 5.0,
+                min_retention: -1.0,
+                rehearsal_factor: 0.5,
+            }),
+            ..Default::default()
+        };
+        let errors = cfg.validate();
+        assert!(
+            errors.is_empty(),
+            "disabled decay should skip validation: {errors:?}"
+        );
+    }
+
+    #[test]
+    fn bad_decay_values_rejected() {
+        let cfg = MemoryEngineConfig {
+            decay: Some(DecayConfig {
+                enabled: true,
+                base_half_life_secs: -1.0,
+                decay_shape: 5.0,
+                min_retention: -0.1,
+                rehearsal_factor: 0.5,
+            }),
+            ..Default::default()
+        };
+        let errors = cfg.validate();
+        assert_eq!(errors.len(), 3);
+    }
+
+    #[test]
+    fn config_round_trips_json() {
+        let cfg = MemoryEngineConfig::default();
+        let json = serde_json::to_string(&cfg).unwrap();
+        let back: MemoryEngineConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(cfg.llm.model, back.llm.model);
+        assert_eq!(cfg.embedding.dims, back.embedding.dims);
+    }
+}

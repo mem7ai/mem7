@@ -10,6 +10,7 @@ description = "The core memory engine orchestrator for mem7"
 mem7-error.workspace = true
 mem7-config.workspace = true
 mem7-core.workspace = true
+mem7-datetime.workspace = true
 mem7-llm.workspace = true
 mem7-embedding.workspace = true
 mem7-vector.workspace = true

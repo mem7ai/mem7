@@ -10,36 +10,7 @@ fn age_from_iso(ts: &str) -> f64 {
         .unwrap_or_default()
         .as_secs_f64();
 
-    parse_iso_epoch(ts).map_or(0.0, |epoch| (now - epoch).max(0.0))
-}
-
-/// Best-effort ISO 8601 `YYYY-MM-DDThh:mm:ssZ` → epoch seconds.
-fn parse_iso_epoch(ts: &str) -> Option<f64> {
-    let ts = ts.trim().trim_end_matches('Z');
-    let (date, time) = ts.split_once('T')?;
-    let mut date_parts = date.split('-');
-    let y: u64 = date_parts.next()?.parse().ok()?;
-    let m: u64 = date_parts.next()?.parse().ok()?;
-    let d: u64 = date_parts.next()?.parse().ok()?;
-
-    let mut time_parts = time.split(':');
-    let h: u64 = time_parts.next()?.parse().ok()?;
-    let min: u64 = time_parts.next()?.parse().ok()?;
-    let sec: u64 = time_parts.next()?.parse().ok()?;
-
-    let days = ymd_to_days(y, m, d);
-    Some((days * 86400 + h * 3600 + min * 60 + sec) as f64)
-}
-
-/// Convert y/m/d to days since Unix epoch using the civil calendar algorithm.
-fn ymd_to_days(y: u64, m: u64, d: u64) -> u64 {
-    let y = if m <= 2 { y.wrapping_sub(1) } else { y };
-    let era = y / 400;
-    let yoe = y - era * 400;
-    let m_adj = if m > 2 { m - 3 } else { m + 9 };
-    let doy = (153 * m_adj + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146097 + doe - 719468
+    mem7_datetime::iso_to_epoch(ts).map_or(0.0, |epoch| (now - epoch).max(0.0))
 }
 
 /// Compute the retention factor for a memory given its age and access count.
@@ -177,7 +148,7 @@ mod tests {
 
     #[test]
     fn parse_iso_round_trips() {
-        let epoch = parse_iso_epoch("2025-01-01T00:00:00Z");
+        let epoch = mem7_datetime::iso_to_epoch("2025-01-01T00:00:00Z");
         assert!(epoch.is_some());
         assert!((epoch.unwrap() - 1735689600.0).abs() < 1.0);
     }

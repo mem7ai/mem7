@@ -3,7 +3,7 @@ mod filter;
 mod flat;
 mod upstash;
 
-pub use distance::DistanceMetric;
+pub use distance::{DistanceMetric, cosine_similarity};
 pub use flat::FlatIndex;
 pub use upstash::UpstashVectorIndex;
 
