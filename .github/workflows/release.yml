@@ -190,6 +190,7 @@ jobs:
             sleep 15
           }
           publish mem7-error
+          publish mem7-datetime
           publish mem7-config
           publish mem7-core
           publish mem7-llm
@@ -197,5 +198,8 @@ jobs:
           publish mem7-vector
           publish mem7-history
           publish mem7-dedup
+          publish mem7-reranker
+          publish mem7-graph
+          publish mem7-telemetry
           publish mem7-store
           publish mem7
