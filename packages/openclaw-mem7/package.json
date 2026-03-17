@@ -24,7 +24,7 @@
     "typescript": "^5.8.0"
   },
   "dependencies": {
-    "@mem7ai/mem7": "^0.2.0",
+    "@mem7ai/mem7": "^0.3.0",
     "@sinclair/typebox": "^0.34.0"
   },
   "peerDependencies": {
