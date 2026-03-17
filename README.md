@@ -316,12 +316,15 @@ mem7 implements an Ebbinghaus-inspired **forgetting curve** that deprioritizes s
 
 When enabled, every memory carries two extra metadata fields: `last_accessed_at` (the last time it was written or retrieved) and `access_count` (how many times it has been retrieved). These are used to compute a **retention score** that modulates the raw similarity score during search and dedup:
 
-```
-stability  = S0 * (1 + alpha * ln(1 + access_count))
-retention  = exp(-((age / stability) ^ gamma))
-effective  = floor + (1 - floor) * retention
-final_score = raw_similarity * effective
-```
+$$S = S_0 \cdot \bigl(1 + \alpha \cdot \ln(1 + n)\bigr)$$
+
+$$R(t) = \exp\!\Bigl(-\Bigl(\frac{t - \tau}{S}\Bigr)^{\!\gamma}\Bigr)$$
+
+$$\widetilde{R}(t) = \rho + (1 - \rho) \cdot R(t)$$
+
+$$\text{score}_{\text{final}} = \text{sim}_{\text{raw}} \times \widetilde{R}(t)$$
+
+where $S_0$ = base half-life, $\alpha$ = rehearsal factor, $n$ = access count, $\tau$ = last accessed time, $\gamma$ = decay shape, $\rho$ = min retention floor.
 
 - **Decay over time**: memories you haven't touched in weeks get deprioritized, but never disappear (the `floor` parameter ensures a minimum retention of 10% by default).
 - **Rehearsal strengthening**: each time a memory is successfully retrieved via `search()`, its `access_count` is incremented and `last_accessed_at` is reset asynchronously — making it harder to forget next time.
