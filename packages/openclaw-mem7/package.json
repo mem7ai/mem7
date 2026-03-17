@@ -1,6 +1,6 @@
 {
   "name": "@mem7ai/openclaw-mem7",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OpenClaw memory plugin powered by mem7 — LLM fact extraction, graph relations, dedup, and Ebbinghaus forgetting curve.",
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -24,7 +24,7 @@
     "typescript": "^5.8.0"
   },
   "dependencies": {
-    "@mem7ai/mem7": "^0.3.0",
+    "@mem7ai/mem7": "^0.3.2",
     "@sinclair/typebox": "^0.34.0"
   },
   "peerDependencies": {
