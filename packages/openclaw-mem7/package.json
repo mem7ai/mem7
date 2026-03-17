@@ -19,6 +19,9 @@
     "displayName": "Memory (mem7)",
     "minGatewayVersion": "0.8.0"
   },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  },
   "dependencies": {
     "@mem7ai/mem7": "^0.2.0",
     "@sinclair/typebox": "^0.34.0"

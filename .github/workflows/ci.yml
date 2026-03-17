@@ -96,6 +96,6 @@ jobs:
           node-version: "22"
       - run: npm install --ignore-scripts
       - name: TypeScript compile
-        run: npx tsc --noEmit
+        run: npx -p typescript tsc --noEmit
       - name: Build dist
         run: npm run build
