@@ -6,7 +6,10 @@
 
 <p align="center">LLM-powered long-term memory engine — Rust core with multi-language bindings.</p>
 
-Deeply inspired by [Mem0](https://mem0.ai/), mem7 reimplements the core memory pipeline in Rust and adds an **Ebbinghaus forgetting curve** — stale memories naturally decay over time while frequently recalled facts grow stronger, just like human memory.
+Deeply inspired by [Mem0](https://mem0.ai/), mem7 reimplements the core memory pipeline in Rust and goes further with two capabilities Mem0 doesn't have:
+
+- **Ebbinghaus forgetting curve** — stale memories naturally decay over time while frequently recalled facts grow stronger, just like human memory.
+- **Session-aware recall** — each memory is typed (factual / preference / procedural / episodic) and each query is auto-classified by task intent, so irrelevant memories (e.g. design preferences during bug-fixing) are demoted before they reach the agent.
 
 mem7 extracts factual statements from conversations, deduplicates them against existing memories, and stores the results in vector + graph databases with full audit history.
 
