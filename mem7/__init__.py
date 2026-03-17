@@ -3,7 +3,7 @@
 from mem7.memory import AsyncMemory, Memory
 
 __all__ = ["Memory", "AsyncMemory", "init_telemetry", "shutdown_telemetry"]
-__version__ = "0.2.0"
+__version__ = "0.3.1"
 
 
 def init_telemetry(**kwargs):
