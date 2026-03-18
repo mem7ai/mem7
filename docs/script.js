@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTabs("[data-decay]", "data-decay", "[data-decay-panel]", "data-decay-panel");
   setupTabs("[data-context]", "data-context", "[data-context-panel]", "data-context-panel");
   setupCopyButtons();
+  setupThemeToggle();
   renderKatex();
 });
 
@@ -35,6 +36,31 @@ function setupTabs(tabSelector, tabAttr, panelSelector, panelAttr) {
       const target = document.querySelector(`[${panelAttr}="${value}"]`);
       if (target) target.classList.add("active");
     });
+  });
+}
+
+function setupThemeToggle() {
+  const btn = document.querySelector(".theme-toggle");
+  if (!btn) return;
+
+  const saved = localStorage.getItem("mem7-theme");
+  if (saved) {
+    document.documentElement.setAttribute("data-theme", saved);
+  } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+    document.documentElement.setAttribute("data-theme", "light");
+  }
+
+  btn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("mem7-theme", next);
+  });
+
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
+    if (!localStorage.getItem("mem7-theme")) {
+      document.documentElement.setAttribute("data-theme", e.matches ? "light" : "dark");
+    }
   });
 }
 

@@ -20,6 +20,21 @@
   --mono:      'JetBrains Mono', 'Fira Code', monospace;
 }
 
+[data-theme="light"] {
+  --bg:        #ffffff;
+  --bg-alt:    #f7f8fa;
+  --surface:   #ffffff;
+  --surface-2: #f0f1f3;
+  --border:    #e0e2e6;
+  --border-h:  #cdd0d5;
+  --text:      #1a1a1a;
+  --text-2:    #555555;
+  --text-3:    #888888;
+  --accent:    #00a86b;
+  --accent-2:  #009060;
+  --accent-dim:#00a86b14;
+}
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -49,6 +64,10 @@ a:hover { opacity: 0.8; }
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
+}
+
+[data-theme="light"] .nav {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .nav-inner {
@@ -288,6 +307,43 @@ a:hover { opacity: 0.8; }
 .cmt { color: #5c6370; font-style: italic; }
 .fn { color: #61afef; }
 .attr { color: #e5c07b; }
+
+[data-theme="light"] .kw { color: #8839ac; }
+[data-theme="light"] .str { color: #50a14f; }
+[data-theme="light"] .num { color: #c76b29; }
+[data-theme="light"] .cmt { color: #9ca0a4; }
+[data-theme="light"] .fn { color: #4078f2; }
+[data-theme="light"] .attr { color: #c18401; }
+
+/* Theme toggle */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-2);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--border-h);
+}
+
+.theme-toggle .icon-sun,
+.theme-toggle .icon-moon { display: none; }
+
+[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+:root .theme-toggle .icon-sun { display: block; }
+:root .theme-toggle .icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 
 /* ── Architecture Visual ─────────────────────────────────────── */
 .arch-visual {
@@ -623,11 +679,12 @@ a:hover { opacity: 0.8; }
   font-size: 15px;
   font-weight: 600;
   color: var(--accent);
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
   border-radius: 8px;
   padding: 8px 16px;
   display: inline-block;
+  opacity: 0.9;
 }
 
 .dp-arrow-down {
@@ -1177,6 +1234,27 @@ a:hover { opacity: 0.8; }
 
 .oc-design-decisions {
   margin-top: 16px;
+}
+
+/* ── Light mode surface shadows ──────────────────────────────── */
+[data-theme="light"] .feature-card,
+[data-theme="light"] .provider-card,
+[data-theme="light"] .binding-card,
+[data-theme="light"] .decay-formula-card,
+[data-theme="light"] .decay-how-card,
+[data-theme="light"] .decay-detail-card,
+[data-theme="light"] .dp-flow,
+[data-theme="light"] .arch-core,
+[data-theme="light"] .code-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+[data-theme="light"] .check::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"] .oc-flow-card.oc-flow-accent {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--accent-dim) 100%);
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */
