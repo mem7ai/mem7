@@ -13,9 +13,12 @@ use uuid::Uuid;
 use crate::constants::*;
 use crate::decay;
 use crate::engine::MemoryEngine;
-use crate::payload::{build_memory_payload, build_raw_memory_payload, build_update_payload};
+use crate::payload::{
+    build_memory_payload, build_raw_memory_payload, build_update_payload, payload_to_event_metadata,
+};
 use crate::pipeline;
 use crate::prompts::VISION_DESCRIBE_PROMPT;
+use crate::require_scope;
 
 impl MemoryEngine {
     /// Add memories from a conversation.
@@ -54,6 +57,7 @@ impl MemoryEngine {
         messages: &[ChatMessage],
         opts: &AddOptions<'_>,
     ) -> Result<AddResult> {
+        require_scope("add", opts.user_id, opts.agent_id, opts.run_id)?;
         if opts.infer {
             self.add_with_inference(
                 messages,
@@ -113,11 +117,18 @@ impl MemoryEngine {
                 metadata,
                 &now,
             );
+            let audit = payload_to_event_metadata(&payload);
 
             self.vector_index.insert(memory_id, &vec, payload).await?;
 
             self.history
-                .add_event(memory_id, None, Some(&msg.content), MemoryAction::Add)
+                .add_event(
+                    memory_id,
+                    None,
+                    Some(&msg.content),
+                    MemoryAction::Add,
+                    audit,
+                )
                 .await?;
 
             results.push(MemoryActionResult {
@@ -275,11 +286,12 @@ impl MemoryEngine {
                     let mt = fact_type_map.get(text.as_str()).copied();
                     let payload =
                         build_memory_payload(text, user_id, agent_id, run_id, metadata, &now, mt);
+                    let audit = payload_to_event_metadata(&payload);
 
                     self.vector_index.insert(memory_id, &vec, payload).await?;
 
                     self.history
-                        .add_event(memory_id, None, Some(text), MemoryAction::Add)
+                        .add_event(memory_id, None, Some(text), MemoryAction::Add, audit)
                         .await?;
 
                     results.push(MemoryActionResult {
@@ -305,6 +317,9 @@ impl MemoryEngine {
                         let existing_mt = existing_entry
                             .as_ref()
                             .and_then(|(_, p)| p.get("memory_type").and_then(|v| v.as_str()));
+                        let existing_created_at = existing_entry
+                            .as_ref()
+                            .and_then(|(_, p)| p.get("created_at").and_then(|v| v.as_str()));
                         let mt = existing_mt.or_else(|| fact_type_map.get(text.as_str()).copied());
 
                         let payload = build_update_payload(
@@ -313,17 +328,19 @@ impl MemoryEngine {
                             agent_id,
                             run_id,
                             metadata,
+                            existing_created_at,
                             &now,
                             prev_ac + 1,
                             mt,
                         );
+                        let audit = payload_to_event_metadata(&payload);
 
                         self.vector_index
                             .update(&real_id, Some(&vec), Some(payload))
                             .await?;
 
                         self.history
-                            .add_event(real_id, old_text, Some(text), MemoryAction::Update)
+                            .add_event(real_id, old_text, Some(text), MemoryAction::Update, audit)
                             .await?;
 
                         results.push(MemoryActionResult {
@@ -337,11 +354,26 @@ impl MemoryEngine {
                 MemoryAction::Delete => {
                     if let Some(real_id) = id_mapping.resolve(&decision.id) {
                         let old_text = decision.old_memory.as_deref().or(Some(&decision.text));
+                        let audit = self
+                            .vector_index
+                            .get(&real_id)
+                            .await
+                            .ok()
+                            .flatten()
+                            .map(|(_, payload)| {
+                                let mut metadata = payload_to_event_metadata(&payload);
+                                metadata.is_deleted = true;
+                                metadata
+                            })
+                            .unwrap_or_else(|| mem7_core::MemoryEventMetadata {
+                                is_deleted: true,
+                                ..Default::default()
+                            });
 
                         self.vector_index.delete(&real_id).await?;
 
                         self.history
-                            .add_event(real_id, old_text, None, MemoryAction::Delete)
+                            .add_event(real_id, old_text, None, MemoryAction::Delete, audit)
                             .await?;
 
                         results.push(MemoryActionResult {

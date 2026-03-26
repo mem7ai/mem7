@@ -7,7 +7,10 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 pub fn to_napi_err(e: Mem7Error) -> Error {
-    Error::new(Status::GenericFailure, e.to_string())
+    match e {
+        Mem7Error::Config(message) => Error::new(Status::InvalidArg, message),
+        other => Error::new(Status::GenericFailure, other.to_string()),
+    }
 }
 
 // ── Input types ──────────────────────────────────────────────────────
@@ -27,6 +30,8 @@ pub struct JsMemoryItem {
     pub user_id: Option<String>,
     pub agent_id: Option<String>,
     pub run_id: Option<String>,
+    pub actor_id: Option<String>,
+    pub role: Option<String>,
     pub metadata: String,
     pub created_at: String,
     pub updated_at: String,
@@ -44,6 +49,8 @@ impl From<MemoryItem> for JsMemoryItem {
             user_id: m.user_id,
             agent_id: m.agent_id,
             run_id: m.run_id,
+            actor_id: m.actor_id,
+            role: m.role,
             metadata: m.metadata.to_string(),
             created_at: m.created_at,
             updated_at: m.updated_at,
@@ -150,6 +157,10 @@ pub struct JsMemoryEvent {
     pub new_value: Option<String>,
     pub action: JsMemoryAction,
     pub created_at: String,
+    pub updated_at: Option<String>,
+    pub is_deleted: bool,
+    pub actor_id: Option<String>,
+    pub role: Option<String>,
 }
 
 impl From<MemoryEvent> for JsMemoryEvent {
@@ -161,6 +172,10 @@ impl From<MemoryEvent> for JsMemoryEvent {
             new_value: e.new_value,
             action: e.action.into(),
             created_at: e.created_at,
+            updated_at: e.updated_at,
+            is_deleted: e.is_deleted,
+            actor_id: e.actor_id,
+            role: e.role,
         }
     }
 }

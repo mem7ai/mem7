@@ -1,7 +1,7 @@
 mod sqlite;
 
 use async_trait::async_trait;
-use mem7_core::{MemoryAction, MemoryEvent};
+use mem7_core::{MemoryAction, MemoryEvent, MemoryEventMetadata};
 use mem7_error::Result;
 use uuid::Uuid;
 
@@ -18,6 +18,7 @@ pub trait HistoryStore: Send + Sync {
         old_value: Option<&str>,
         new_value: Option<&str>,
         action: MemoryAction,
+        metadata: MemoryEventMetadata,
     ) -> Result<MemoryEvent>;
 
     async fn get_history(&self, memory_id: Uuid) -> Result<Vec<MemoryEvent>>;

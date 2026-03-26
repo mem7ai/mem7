@@ -56,10 +56,30 @@ jobs:
         run: pip install maturin
       - name: Build wheel
         run: maturin build --release --out dist
-      - name: Install and smoke-test
+      - name: Install package and test deps
         run: |
-          pip install dist/*.whl
+          pip install dist/*.whl pytest pytest-asyncio
+      - name: Smoke test
+        run: |
           cd /tmp && python -c "from mem7 import Memory; print('import OK')"
+      - name: Run Python tests
+        run: |
+          cd /tmp && pytest "$GITHUB_WORKSPACE/tests/python/test_memory.py"
+
+  python-style:
+    name: Python style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Check formatting
+        run: ruff format --check mem7 tests/python
+      - name: Lint
+        run: ruff check mem7 tests/python
 
   node-build:
     name: Node.js build (${{ matrix.os }})
@@ -95,6 +115,10 @@ jobs:
         with:
           node-version: "22"
       - run: npm install --ignore-scripts
+      - name: Prettier check
+        run: npm run fmt:check
+      - name: ESLint
+        run: npm run lint
       - name: TypeScript compile
         run: npx -p typescript tsc --noEmit
       - name: Build dist

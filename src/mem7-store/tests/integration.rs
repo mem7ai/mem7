@@ -3,7 +3,8 @@ use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use mem7_core::{
-    AddOptions, ChatMessage, MemoryAction, MemoryEvent, MemoryFilter, SearchOptions, new_memory_id,
+    AddOptions, ChatMessage, MemoryAction, MemoryEvent, MemoryEventMetadata, MemoryFilter,
+    SearchOptions, new_memory_id,
 };
 use mem7_embedding::EmbeddingClient;
 use mem7_error::Result;
@@ -195,6 +196,7 @@ impl HistoryStore for MockHistory {
         old_value: Option<&str>,
         new_value: Option<&str>,
         action: MemoryAction,
+        metadata: MemoryEventMetadata,
     ) -> Result<MemoryEvent> {
         let event = MemoryEvent {
             id: new_memory_id(),
@@ -202,7 +204,13 @@ impl HistoryStore for MockHistory {
             old_value: old_value.map(String::from),
             new_value: new_value.map(String::from),
             action,
-            created_at: "2025-01-01T00:00:00Z".into(),
+            created_at: metadata
+                .created_at
+                .unwrap_or_else(|| "2025-01-01T00:00:00Z".into()),
+            updated_at: metadata.updated_at,
+            is_deleted: metadata.is_deleted,
+            actor_id: metadata.actor_id,
+            role: metadata.role,
         };
         self.events
             .write()
@@ -292,7 +300,7 @@ async fn raw_add_skips_system_messages() {
     ];
 
     let result = engine
-        .add(&messages, None, None, None, None, false)
+        .add(&messages, Some("u1"), None, None, None, false)
         .await
         .unwrap();
     assert_eq!(result.results.len(), 1);
@@ -329,7 +337,7 @@ async fn update_changes_text() {
     }];
 
     let result = engine
-        .add(&messages, None, None, None, None, false)
+        .add(&messages, Some("u1"), None, None, None, false)
         .await
         .unwrap();
     let id = result.results[0].id;
@@ -350,7 +358,7 @@ async fn delete_removes_memory() {
     }];
 
     let result = engine
-        .add(&messages, None, None, None, None, false)
+        .add(&messages, Some("u1"), None, None, None, false)
         .await
         .unwrap();
     let id = result.results[0].id;
@@ -395,13 +403,16 @@ async fn reset_clears_everything() {
     }];
 
     engine
-        .add(&messages, None, None, None, None, false)
+        .add(&messages, Some("u1"), None, None, None, false)
         .await
         .unwrap();
 
     engine.reset().await.unwrap();
 
-    let all = engine.get_all(None, None, None, None, None).await.unwrap();
+    let all = engine
+        .get_all(Some("u1"), None, None, None, None)
+        .await
+        .unwrap();
     assert!(all.is_empty());
 }
 
@@ -415,7 +426,7 @@ async fn history_tracks_operations() {
     }];
 
     let result = engine
-        .add(&messages, None, None, None, None, false)
+        .add(&messages, Some("u1"), None, None, None, false)
         .await
         .unwrap();
     let id = result.results[0].id;
@@ -428,6 +439,43 @@ async fn history_tracks_operations() {
     assert_eq!(history[0].action, MemoryAction::Add);
     assert_eq!(history[1].action, MemoryAction::Update);
     assert_eq!(history[2].action, MemoryAction::Delete);
+    assert!(history[2].is_deleted);
+}
+
+#[tokio::test]
+async fn add_requires_scope() {
+    let engine = build_engine().await;
+    let messages = vec![ChatMessage {
+        role: "user".into(),
+        content: "Hello".into(),
+        images: vec![],
+    }];
+
+    let err = engine
+        .add(&messages, None, None, None, None, false)
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("add requires at least one"));
+}
+
+#[tokio::test]
+async fn search_requires_scope() {
+    let engine = build_engine().await;
+    let err = engine
+        .search("hello", None, None, None, 5, None, true, None, None)
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("search requires at least one"));
+}
+
+#[tokio::test]
+async fn get_all_requires_scope() {
+    let engine = build_engine().await;
+    let err = engine
+        .get_all(None, None, None, None, None)
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("get_all requires at least one"));
 }
 
 #[tokio::test]
@@ -469,4 +517,36 @@ async fn delete_all_only_removes_matching_scope_and_writes_history() {
     assert_eq!(history.len(), 2);
     assert_eq!(history[0].action, MemoryAction::Add);
     assert_eq!(history[1].action, MemoryAction::Delete);
+    assert!(history[1].is_deleted);
+}
+
+#[tokio::test]
+async fn history_captures_actor_and_role_from_payload() {
+    let engine = build_engine().await;
+    let messages = vec![ChatMessage {
+        role: "assistant".into(),
+        content: "I can help with deployment runbooks.".into(),
+        images: vec![],
+    }];
+
+    let metadata = serde_json::json!({
+        "actor_id": "agent-1",
+    });
+
+    let result = engine
+        .add(
+            &messages,
+            Some("u1"),
+            None,
+            Some("r1"),
+            Some(&metadata),
+            false,
+        )
+        .await
+        .unwrap();
+
+    let history = engine.history(result.results[0].id).await.unwrap();
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].actor_id.as_deref(), Some("agent-1"));
+    assert_eq!(history[0].role.as_deref(), Some("assistant"));
 }

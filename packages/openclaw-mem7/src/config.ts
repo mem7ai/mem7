@@ -40,10 +40,14 @@ export interface PluginConfig {
   };
   autoRecall?: boolean;
   autoRecallLimit?: number;
+  topK?: number;
+  searchThreshold?: number;
   autoCapture?: boolean;
   userId?: string;
   dbPath?: string;
 }
+
+export type MemoryScope = "session" | "long-term" | "all";
 
 export interface ToolDefinition {
   id: string;
@@ -87,40 +91,28 @@ function expandPath(p: string): string {
   return resolve(p);
 }
 
-function resolveApiKey(
-  api: OpenClawPluginApi,
-  provider: string
-): string | undefined {
+function resolveApiKey(api: OpenClawPluginApi, provider: string): string | undefined {
   return api.config?.models?.providers?.[provider]?.apiKey;
 }
 
-function resolveBaseUrl(
-  api: OpenClawPluginApi,
-  provider: string
-): string | undefined {
+function resolveBaseUrl(api: OpenClawPluginApi, provider: string): string | undefined {
   return api.config?.models?.providers?.[provider]?.baseUrl;
 }
 
 export function buildMem7Config(
   cfg: PluginConfig,
-  api: OpenClawPluginApi
+  api: OpenClawPluginApi,
 ): Record<string, unknown> {
   const dbBase = expandPath(cfg.dbPath ?? "~/.openclaw/mem7");
 
-  const llmApiKey =
-    cfg.llm?.api_key ?? resolveApiKey(api, "openai") ?? "";
+  const llmApiKey = cfg.llm?.api_key ?? resolveApiKey(api, "openai") ?? "";
   const llmBaseUrl =
-    cfg.llm?.base_url ??
-    resolveBaseUrl(api, "openai") ??
-    "https://api.openai.com/v1";
+    cfg.llm?.base_url ?? resolveBaseUrl(api, "openai") ?? "https://api.openai.com/v1";
 
   const embProvider = cfg.embedding?.provider ?? "openai";
-  const embApiKey =
-    cfg.embedding?.api_key ?? resolveApiKey(api, embProvider) ?? "";
+  const embApiKey = cfg.embedding?.api_key ?? resolveApiKey(api, embProvider) ?? "";
   const embBaseUrl =
-    cfg.embedding?.base_url ??
-    resolveBaseUrl(api, embProvider) ??
-    "https://api.openai.com/v1";
+    cfg.embedding?.base_url ?? resolveBaseUrl(api, embProvider) ?? "https://api.openai.com/v1";
 
   const mem7Cfg: Record<string, unknown> = {
     llm: {
@@ -149,9 +141,7 @@ export function buildMem7Config(
     history: {
       db_path: join(dbBase, "history.db"),
     },
-    decay: cfg.decay
-      ? { enabled: cfg.decay.enabled ?? true, ...cfg.decay }
-      : { enabled: true },
+    decay: cfg.decay ? { enabled: cfg.decay.enabled ?? true, ...cfg.decay } : { enabled: true },
   };
 
   if (cfg.graph) {
@@ -169,11 +159,59 @@ export function buildMem7Config(
   return mem7Cfg;
 }
 
-export function resolveUserId(
-  cfg: PluginConfig,
-  api: OpenClawPluginApi
-): string {
+export function resolveUserId(cfg: PluginConfig): string {
   if (cfg.userId) return cfg.userId;
-  if (api.runtime?.sessionKey) return api.runtime.sessionKey;
   return "default";
+}
+
+export function extractAgentId(sessionKey?: string): string | null {
+  if (!sessionKey) return null;
+  const match = sessionKey.match(/^agent:([^:]+):/);
+  const agentId = match?.[1];
+  if (!agentId || agentId === "main") return null;
+  return agentId;
+}
+
+interface ScopeResolutionArgs {
+  userId?: string | null;
+  agentId?: string | null;
+  runId?: string | null;
+  scope?: Exclude<MemoryScope, "all"> | null;
+  longTerm?: boolean | null;
+}
+
+export function resolveIdentity(
+  cfg: PluginConfig,
+  api: OpenClawPluginApi,
+  args: Omit<ScopeResolutionArgs, "scope" | "longTerm"> = {},
+): { userId: string; agentId: string | null; sessionRunId: string | null } {
+  const sessionRunId = api.runtime?.sessionKey ?? null;
+  const userId = args.userId ?? resolveUserId(cfg);
+  const agentId = args.agentId ?? extractAgentId(sessionRunId ?? undefined);
+
+  return { userId, agentId, sessionRunId };
+}
+
+export function resolveScopeIds(
+  cfg: PluginConfig,
+  api: OpenClawPluginApi,
+  args: ScopeResolutionArgs = {},
+): { userId: string; agentId: string | null; runId: string | null } {
+  const scope: Exclude<MemoryScope, "all"> =
+    args.scope ?? (args.longTerm === false ? "session" : "long-term");
+  const { userId, agentId, sessionRunId } = resolveIdentity(cfg, api, args);
+
+  if (scope === "long-term") {
+    return {
+      userId,
+      agentId,
+      runId: args.runId ?? null,
+    };
+  }
+
+  return {
+    userId,
+    agentId,
+    runId: args.runId ?? sessionRunId,
+  };
 }

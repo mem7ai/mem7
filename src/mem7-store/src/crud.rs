@@ -5,7 +5,8 @@ use tracing::{info, instrument};
 use uuid::Uuid;
 
 use crate::engine::MemoryEngine;
-use crate::payload::payload_to_memory_item;
+use crate::payload::{payload_to_event_metadata, payload_to_memory_item};
+use crate::require_scope;
 
 impl MemoryEngine {
     #[instrument(skip(self))]
@@ -28,6 +29,7 @@ impl MemoryEngine {
         filters: Option<&serde_json::Value>,
         limit: Option<usize>,
     ) -> Result<Vec<MemoryItem>> {
+        require_scope("get_all", user_id, agent_id, run_id)?;
         let filter = MemoryFilter {
             metadata: filters.cloned(),
             ..MemoryFilter::from_session(user_id, agent_id, run_id)
@@ -61,6 +63,7 @@ impl MemoryEngine {
         let mut payload = entry.1.clone();
         payload["text"] = serde_json::Value::String(new_text.to_string());
         payload["updated_at"] = serde_json::Value::String(now_iso());
+        let audit = payload_to_event_metadata(&payload);
 
         self.vector_index
             .update(&memory_id, Some(&vec), Some(payload))
@@ -72,6 +75,7 @@ impl MemoryEngine {
                 old_text.as_deref(),
                 Some(new_text),
                 MemoryAction::Update,
+                audit,
             )
             .await?;
 
@@ -85,11 +89,28 @@ impl MemoryEngine {
             .as_ref()
             .and_then(|(_, p)| p.get("text").and_then(|v| v.as_str()))
             .map(String::from);
+        let audit = entry
+            .as_ref()
+            .map(|(_, payload)| {
+                let mut metadata = payload_to_event_metadata(payload);
+                metadata.is_deleted = true;
+                metadata
+            })
+            .unwrap_or_else(|| mem7_core::MemoryEventMetadata {
+                is_deleted: true,
+                ..Default::default()
+            });
 
         self.vector_index.delete(&memory_id).await?;
 
         self.history
-            .add_event(memory_id, old_text.as_deref(), None, MemoryAction::Delete)
+            .add_event(
+                memory_id,
+                old_text.as_deref(),
+                None,
+                MemoryAction::Delete,
+                audit,
+            )
             .await?;
 
         Ok(())
@@ -102,12 +123,12 @@ impl MemoryEngine {
         agent_id: Option<&str>,
         run_id: Option<&str>,
     ) -> Result<()> {
-        if user_id.is_none() && agent_id.is_none() && run_id.is_none() {
-            return Err(Mem7Error::Config(
+        require_scope("delete_all", user_id, agent_id, run_id).map_err(|_| {
+            Mem7Error::Config(
                 "delete_all requires at least one of user_id, agent_id, or run_id; use reset() to clear all memories"
                     .into(),
-            ));
-        }
+            )
+        })?;
 
         let filter = MemoryFilter::from_session(user_id, agent_id, run_id);
         let entries = self.vector_index.list(Some(&filter), None).await?;
@@ -121,9 +142,11 @@ impl MemoryEngine {
                 .get("text")
                 .and_then(|v| v.as_str())
                 .map(String::from);
+            let mut audit = payload_to_event_metadata(&payload);
+            audit.is_deleted = true;
             self.vector_index.delete(&id).await?;
             self.history
-                .add_event(id, old_text.as_deref(), None, MemoryAction::Delete)
+                .add_event(id, old_text.as_deref(), None, MemoryAction::Delete, audit)
                 .await?;
         }
 

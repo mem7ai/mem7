@@ -9,6 +9,7 @@ description = "SQLite-backed audit history for the mem7 memory engine"
 [dependencies]
 mem7-error.workspace = true
 mem7-core.workspace = true
+mem7-datetime.workspace = true
 async-trait.workspace = true
 tokio-rusqlite.workspace = true
 rusqlite.workspace = true

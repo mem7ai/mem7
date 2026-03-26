@@ -124,6 +124,52 @@ async def main():
 asyncio.run(main())
 ```
 
+## Mem0 Compatibility Notes
+
+For Python migration paths, `mem7` now accepts several common `mem0` config aliases directly in `Memory.from_config(...)` / `AsyncMemory.from_config(...)`:
+
+- `embedder` -> `embedding`
+- `vector_store` -> `vector`
+- `graph_store` -> `graph`
+- `history_db_path` -> `history.db_path`
+
+It also accepts the common provider-style nested shape:
+
+```python
+from mem7 import Memory
+
+memory = Memory.from_config({
+    "llm": {
+        "provider": "openai",
+        "config": {"model": "gpt-4.1-mini"},
+    },
+    "embedder": {
+        "provider": "openai",
+        "config": {"model": "text-embedding-3-small", "embedding_dims": 1536},
+    },
+    "vector_store": {
+        "provider": "memory",
+        "config": {"collection_name": "memories"},
+    },
+    "history_db_path": ":memory:",
+})
+```
+
+The Python API also aligns more closely with `mem0` conventions:
+
+- `add()` / `search()` / `get_all()` require at least one of `user_id`, `agent_id`, or `run_id`
+- `search()` returns `{"results": [...], "memories": [...], "relations": [...]}`
+- `get_all()` returns `{"results": [...], "memories": [...]}`
+- `get()` returns `None` when a memory is not found
+- `update()` / `delete()` / `delete_all()` return `{"message": "...successfully!"}`
+- `history()` includes `event`, `old_memory`, `new_memory`, `updated_at`, `is_deleted`, `actor_id`, and `role`
+
+Provider names are also normalized where possible:
+
+- OpenAI-compatible names such as `groq`, `together`, and `azure_openai` are mapped onto the shared OpenAI-compatible client
+- `vector_store.provider="memory"` and `graph_store.provider="memory"` map to the in-memory `flat` backends
+- unsupported providers such as `qdrant` still fail fast during config validation with a clear error message
+
 ## Quick Start (TypeScript)
 
 ```typescript
@@ -537,9 +583,10 @@ In `~/.openclaw/openclaw.json`:
 
 ### What it does
 
-- **Auto-recall** (`before_prompt_build`): before each agent turn, the plugin searches mem7 for relevant memories and injects them into the system prompt.
+- **Auto-recall** (`before_prompt_build` / `before_agent_start`): before each agent turn, the plugin searches both session and long-term scopes, merges the results, and injects them into the system prompt.
 - **Auto-capture** (`agent_end`): after each turn, the user + assistant messages are sent through mem7's fact extraction pipeline, automatically storing new facts and deduplicating against existing ones.
-- **Tools**: the plugin registers `memory_search`, `memory_get`, and `memory_store` tools that the agent can call explicitly.
+- **Tools**: the plugin registers `memory_search`, `memory_get`, `memory_list`, `memory_store`, and `memory_forget` for explicit memory operations.
+- **Scope model**: tools support `session`, `long-term`, and merged `all` reads, with `sessionKey` automatically mapped onto `runId` and optional `agentId`.
 - **Forgetting curve**: decay is enabled by default so stale facts naturally fade, while frequently recalled memories stay strong.
 
 See [`packages/openclaw-mem7/`](packages/openclaw-mem7/) for full documentation.
@@ -600,6 +647,7 @@ See the [examples/](examples/) directory:
 - Rust 1.85+ (stable)
 - Python 3.10+
 - Node.js 22+
+- [just](https://github.com/casey/just)
 - [maturin](https://github.com/PyO3/maturin)
 
 ### Build
@@ -609,20 +657,28 @@ python -m venv .venv && source .venv/bin/activate
 pip install maturin pydantic
 
 # Development build (debug, fast iteration)
-maturin develop
+just dev
 
 # Release build
-maturin develop --release
+just build
+
+# OpenClaw plugin build
+just openclaw-build
 ```
 
 ### Test
 
 ```bash
-# Rust tests
-cargo test --workspace
+# Full validation suite
+just check
 
-# Clippy
-cargo clippy --workspace --all-targets -- -D warnings
+# Common individual tasks
+just fmt
+just fmt-check
+just clippy
+just lint
+just typecheck
+just test
 ```
 
 ## License

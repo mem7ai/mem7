@@ -13,6 +13,7 @@ use crate::engine::{MemoryEngine, graph_result_to_relation};
 use crate::payload::payload_to_memory_item;
 use crate::pipeline;
 use crate::rehearsal;
+use crate::require_scope;
 
 impl MemoryEngine {
     /// Search memories by semantic similarity.
@@ -56,6 +57,7 @@ impl MemoryEngine {
         query: &str,
         opts: &SearchOptions<'_>,
     ) -> Result<SearchResult> {
+        require_scope("search", opts.user_id, opts.agent_id, opts.run_id)?;
         let context_cfg = self.config.context.as_ref().filter(|c| c.enabled);
 
         let classify_future = async {

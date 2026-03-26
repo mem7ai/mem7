@@ -12,3 +12,4 @@ mem7-config.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+md5 = "0.8.0"

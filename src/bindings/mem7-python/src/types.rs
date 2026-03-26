@@ -2,11 +2,14 @@ use mem7_core::{
     AddResult, GraphRelation, MemoryActionResult, MemoryEvent, MemoryItem, SearchResult,
 };
 use mem7_error::Mem7Error;
-use pyo3::exceptions::PyRuntimeError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
 pub fn to_py_err(e: Mem7Error) -> PyErr {
-    PyRuntimeError::new_err(e.to_string())
+    match e {
+        Mem7Error::Config(message) => PyValueError::new_err(message),
+        other => PyRuntimeError::new_err(other.to_string()),
+    }
 }
 
 // ── Output types ─────────────────────────────────────────────────────
@@ -16,9 +19,12 @@ pub fn to_py_err(e: Mem7Error) -> PyErr {
 pub struct PyMemoryItem {
     pub id: String,
     pub text: String,
+    pub hash: Option<String>,
     pub user_id: Option<String>,
     pub agent_id: Option<String>,
     pub run_id: Option<String>,
+    pub actor_id: Option<String>,
+    pub role: Option<String>,
     pub metadata: String,
     pub created_at: String,
     pub updated_at: String,
@@ -37,12 +43,16 @@ impl PyMemoryItem {
 
 impl From<MemoryItem> for PyMemoryItem {
     fn from(m: MemoryItem) -> Self {
+        let hash = m.hash();
         Self {
             id: m.id.to_string(),
             text: m.text,
+            hash,
             user_id: m.user_id,
             agent_id: m.agent_id,
             run_id: m.run_id,
+            actor_id: m.actor_id,
+            role: m.role,
             metadata: m.metadata.to_string(),
             created_at: m.created_at,
             updated_at: m.updated_at,
@@ -177,6 +187,10 @@ pub struct PyMemoryEvent {
     pub new_value: Option<String>,
     pub action: String,
     pub created_at: String,
+    pub updated_at: Option<String>,
+    pub is_deleted: bool,
+    pub actor_id: Option<String>,
+    pub role: Option<String>,
 }
 
 #[pymethods]
@@ -195,6 +209,10 @@ impl From<MemoryEvent> for PyMemoryEvent {
             new_value: e.new_value,
             action: e.action.to_string(),
             created_at: e.created_at,
+            updated_at: e.updated_at,
+            is_deleted: e.is_deleted,
+            actor_id: e.actor_id,
+            role: e.role,
         }
     }
 }

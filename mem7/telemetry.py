@@ -1,7 +1,6 @@
 """OpenTelemetry integration for mem7."""
 
 import json
-from typing import Optional
 
 from _mem7 import init_telemetry as _init_telemetry
 from _mem7 import shutdown_telemetry as _shutdown_telemetry

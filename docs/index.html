@@ -175,34 +175,40 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             </button>
           </div>
-<pre><code id="code-rust"><span class="kw">use</span> mem7::prelude::*;
+<pre><code id="code-rust"><span class="kw">use</span> mem7::{ChatMessage, MemoryEngine, MemoryEngineConfig};
 
 <span class="attr">#[tokio::main]</span>
-<span class="kw">async fn</span> <span class="fn">main</span>() -> Result&lt;()&gt; {
-    <span class="kw">let</span> config = MemoryConfig {
-        llm: LlmConfig {
-            base_url: <span class="str">"http://localhost:11434/v1"</span>.into(),
-            api_key: <span class="str">"ollama"</span>.into(),
-            model: <span class="str">"qwen2.5:7b"</span>.into(),
-            ..Default::default()
-        },
-        embedding: EmbeddingConfig {
-            base_url: <span class="str">"http://localhost:11434/v1"</span>.into(),
-            api_key: <span class="str">"ollama"</span>.into(),
-            model: <span class="str">"mxbai-embed-large"</span>.into(),
-            dims: <span class="num">1024</span>,
-            ..Default::default()
-        },
-        ..Default::default()
-    };
+<span class="kw">async fn</span> <span class="fn">main</span>() -> mem7::Result&lt;()&gt; {
+    <span class="kw">let</span> config = MemoryEngineConfig::default();
 
     <span class="kw">let</span> engine = MemoryEngine::new(config).<span class="kw">await</span>?;
+    <span class="kw">let</span> messages = vec![
+        ChatMessage {
+            role: <span class="str">"user"</span>.into(),
+            content: <span class="str">"I love playing tennis and my coach is Sarah."</span>.into(),
+            images: vec![],
+        },
+    ];
 
     <span class="cmt">// Add a memory</span>
-    engine.add(messages, <span class="str">"alice"</span>, None, None).<span class="kw">await</span>?;
+    engine
+        .add(&amp;messages, Some(<span class="str">"alice"</span>), None, None, None, <span class="kw">true</span>)
+        .<span class="kw">await</span>?;
 
     <span class="cmt">// Semantic search</span>
-    <span class="kw">let</span> results = engine.search(<span class="str">"What sports?"</span>, <span class="str">"alice"</span>, None, None, <span class="num">5</span>).<span class="kw">await</span>?;
+    <span class="kw">let</span> results = engine
+        .search(
+            <span class="str">"What sports does Alice play?"</span>,
+            Some(<span class="str">"alice"</span>),
+            None,
+            None,
+            <span class="num">5</span>,
+            None,
+            <span class="kw">true</span>,
+            None,
+            None,
+        )
+        .<span class="kw">await</span>?;
 
     Ok(())
 }
@@ -280,7 +286,7 @@ memories = m.get_all(user_id=<span class="str">"alice"</span>)
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
           <h3>Multi-User</h3>
-          <p>Memories are isolated per user_id. Each user has their own memory space with no cross-contamination.</p>
+          <p>Memories can be scoped by <code>user_id</code>, <code>agent_id</code>, and <code>run_id</code> for multi-tenant, per-agent, and per-session isolation.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">

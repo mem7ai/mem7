@@ -43,9 +43,7 @@ export default {
         // not the npm package (which may lag behind the current Rust API).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mod: any = await import("@mem7ai/mem7");
-        engine = await mod.MemoryEngine.create(
-          JSON.stringify(mem7ConfigJson)
-        );
+        engine = await mod.MemoryEngine.create(JSON.stringify(mem7ConfigJson));
         api.logger.info("mem7 engine initialized");
       },
       async stop() {

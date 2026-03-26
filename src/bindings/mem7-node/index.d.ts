@@ -54,6 +54,10 @@ export interface JsMemoryEvent {
   newValue?: string
   action: JsMemoryAction
   createdAt: string
+  updatedAt?: string
+  isDeleted: boolean
+  actorId?: string
+  role?: string
 }
 
 export interface JsMemoryItem {
@@ -62,6 +66,8 @@ export interface JsMemoryItem {
   userId?: string
   agentId?: string
   runId?: string
+  actorId?: string
+  role?: string
   metadata: string
   createdAt: string
   updatedAt: string

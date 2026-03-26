@@ -9,6 +9,10 @@ pub struct MemoryItem {
     pub user_id: Option<String>,
     pub agent_id: Option<String>,
     pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
     pub metadata: serde_json::Value,
     pub created_at: String,
     pub updated_at: String,
@@ -151,6 +155,24 @@ pub struct MemoryEvent {
     pub new_value: Option<String>,
     pub action: MemoryAction,
     pub created_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub is_deleted: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+}
+
+/// Optional audit metadata attached to a history event.
+#[derive(Debug, Clone, Default)]
+pub struct MemoryEventMetadata {
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub is_deleted: bool,
+    pub actor_id: Option<String>,
+    pub role: Option<String>,
 }
 
 /// Result of an add() operation for a single memory.
@@ -160,6 +182,40 @@ pub struct MemoryActionResult {
     pub action: MemoryAction,
     pub old_value: Option<String>,
     pub new_value: Option<String>,
+}
+
+impl MemoryItem {
+    pub fn memory(&self) -> &str {
+        &self.text
+    }
+
+    pub fn hash(&self) -> Option<String> {
+        if self.text.is_empty() {
+            None
+        } else {
+            Some(format!("{:x}", md5::compute(self.text.as_bytes())))
+        }
+    }
+}
+
+impl MemoryActionResult {
+    pub fn event(&self) -> String {
+        self.action.to_string()
+    }
+
+    pub fn memory(&self) -> String {
+        self.new_value
+            .as_deref()
+            .or(self.old_value.as_deref())
+            .unwrap_or("")
+            .to_string()
+    }
+}
+
+impl MemoryEvent {
+    pub fn event(&self) -> String {
+        self.action.to_string()
+    }
 }
 
 /// A graph relation (subject-predicate-object triple).

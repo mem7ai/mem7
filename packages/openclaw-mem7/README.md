@@ -55,20 +55,23 @@ If your OpenClaw config already has an OpenAI provider key (`config.models.provi
 | `decay`           | object  | `{ enabled: true }`  | Forgetting curve parameters                                     |
 | `autoRecall`      | boolean | `true`               | Inject relevant memories before each agent turn                 |
 | `autoRecallLimit` | integer | `5`                  | Max memories to inject via auto-recall                          |
+| `topK`            | integer | `5`                  | Default result limit for tool-driven search/list                |
+| `searchThreshold` | number  | unset                | Optional minimum score for plugin search/recall                 |
 | `autoCapture`     | boolean | `true`               | Extract and store facts after each agent turn                   |
-| `userId`          | string  | session-derived      | Override user ID for memory isolation                           |
+| `userId`          | string  | `"default"`          | Base user namespace for long-term memory                        |
 | `dbPath`          | string  | `~/.openclaw/mem7`   | Base directory for SQLite history DB and graph data              |
 
 ## How It Works
 
-### Auto-Recall (`before_prompt_build`)
+### Auto-Recall (`before_prompt_build` / `before_agent_start`)
 
 Before each agent turn, the plugin:
 
 1. Extracts the latest user message
-2. Calls `mem7.search()` with the message as query
-3. Formats the top memories and graph relations into a context block
-4. Injects it as a system prompt prepend
+2. Searches both the current session scope and the broader long-term scope
+3. Deduplicates the merged recall set
+4. Formats the top memories and graph relations into a context block
+5. Injects it as a system prompt prepend
 
 The injected context looks like:
 
@@ -89,18 +92,34 @@ The injected context looks like:
 After each successful turn, the plugin:
 
 1. Extracts the user + assistant messages from the turn
-2. Sends them through mem7's fact extraction pipeline
-3. New facts are stored; duplicates are merged; stale facts are updated or replaced
+2. Stores them into the current session scope (`runId = sessionKey` when available)
+3. Tags stored memories with `metadata.source = "OPENCLAW"`
+4. New facts are stored; duplicates are merged; stale facts are updated or replaced
 
 This runs as fire-and-forget — errors are logged but never block the response.
 
 ### Tools
 
-| Tool             | Description                                          |
-| ---------------- | ---------------------------------------------------- |
-| `memory_search`  | Search memories by semantic query (with decay scoring) |
-| `memory_get`     | Retrieve a specific memory by ID, or list all        |
-| `memory_store`   | Explicitly store a fact (bypasses auto-capture)      |
+| Tool             | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `memory_search`  | Search memories by semantic query, with `scope` / `longTerm`      |
+| `memory_list`    | List stored memories for the selected scope                       |
+| `memory_store`   | Explicitly store a fact into session or long-term scope           |
+| `memory_get`     | Retrieve a specific memory by ID; `path="all"` still lists all    |
+| `memory_forget`  | Delete a specific memory by ID, or find delete candidates by query |
+
+### Scope Model
+
+The plugin supports three routing modes on search/list/forget tools:
+
+- `scope: "session"` routes reads/writes to the current session when `sessionKey` is available.
+- `scope: "long-term"` routes reads/writes to the broader user namespace without a session `runId`.
+- `scope: "all"` searches or lists both scopes and merges the results.
+- `longTerm: true` is a convenience alias for `scope: "long-term"`.
+
+For `memory_store`, the default is long-term storage unless you pass `longTerm: false` or `scope: "session"`.
+
+If the runtime `sessionKey` matches `agent:<agentId>:...`, the plugin automatically derives `agentId` for per-agent isolation. Session-scoped operations use the configured base `userId` plus the current `runId`; long-term operations omit `runId` but preserve the same `agentId`.
 
 ### Forgetting Curve
 
@@ -113,9 +132,10 @@ See the [mem7 README](../../README.md#memory-decay-forgetting-curve) for the ful
 ## Development
 
 ```bash
-cd packages/openclaw-mem7
-npm install
-npm run build
+# From the repository root
+just openclaw-build
+just lint
+just typecheck
 ```
 
 ## License
