@@ -124,52 +124,6 @@ async def main():
 asyncio.run(main())
 ```
 
-## Mem0 Compatibility Notes
-
-For Python migration paths, `mem7` now accepts several common `mem0` config aliases directly in `Memory.from_config(...)` / `AsyncMemory.from_config(...)`:
-
-- `embedder` -> `embedding`
-- `vector_store` -> `vector`
-- `graph_store` -> `graph`
-- `history_db_path` -> `history.db_path`
-
-It also accepts the common provider-style nested shape:
-
-```python
-from mem7 import Memory
-
-memory = Memory.from_config({
-    "llm": {
-        "provider": "openai",
-        "config": {"model": "gpt-4.1-mini"},
-    },
-    "embedder": {
-        "provider": "openai",
-        "config": {"model": "text-embedding-3-small", "embedding_dims": 1536},
-    },
-    "vector_store": {
-        "provider": "memory",
-        "config": {"collection_name": "memories"},
-    },
-    "history_db_path": ":memory:",
-})
-```
-
-The Python API also aligns more closely with `mem0` conventions:
-
-- `add()` / `search()` / `get_all()` require at least one of `user_id`, `agent_id`, or `run_id`
-- `search()` returns `{"results": [...], "memories": [...], "relations": [...]}`
-- `get_all()` returns `{"results": [...], "memories": [...]}`
-- `get()` returns `None` when a memory is not found
-- `update()` / `delete()` / `delete_all()` return `{"message": "...successfully!"}`
-- `history()` includes `event`, `old_memory`, `new_memory`, `updated_at`, `is_deleted`, `actor_id`, and `role`
-
-Provider names are also normalized where possible:
-
-- OpenAI-compatible names such as `groq`, `together`, and `azure_openai` are mapped onto the shared OpenAI-compatible client
-- `vector_store.provider="memory"` and `graph_store.provider="memory"` map to the in-memory `flat` backends
-- unsupported providers such as `qdrant` still fail fast during config validation with a clear error message
-
 ## Quick Start (TypeScript)
 
 ```typescript
