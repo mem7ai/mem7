@@ -1,9 +1,15 @@
 """mem7 - High-performance AI memory engine with Rust core."""
 
+import importlib.metadata
+
 from mem7.memory import AsyncMemory, Memory
 
 __all__ = ["Memory", "AsyncMemory", "init_telemetry", "shutdown_telemetry"]
-__version__ = "0.3.1"
+
+try:
+    __version__ = importlib.metadata.version("mem7")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "0.3.2"
 
 
 def init_telemetry(**kwargs):

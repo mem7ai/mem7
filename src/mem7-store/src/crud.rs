@@ -102,15 +102,29 @@ impl MemoryEngine {
         agent_id: Option<&str>,
         run_id: Option<&str>,
     ) -> Result<()> {
-        let filter = MemoryFilter::from_session(user_id, agent_id, run_id);
-
-        let entries = self.vector_index.list(Some(&filter), None).await?;
-        for (id, _) in entries {
-            self.vector_index.delete(&id).await?;
+        if user_id.is_none() && agent_id.is_none() && run_id.is_none() {
+            return Err(Mem7Error::Config(
+                "delete_all requires at least one of user_id, agent_id, or run_id; use reset() to clear all memories"
+                    .into(),
+            ));
         }
+
+        let filter = MemoryFilter::from_session(user_id, agent_id, run_id);
+        let entries = self.vector_index.list(Some(&filter), None).await?;
 
         if let Some(gp) = &self.graph_pipeline {
             gp.store().delete_all(&filter).await?;
+        }
+
+        for (id, payload) in entries {
+            let old_text = payload
+                .get("text")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+            self.vector_index.delete(&id).await?;
+            self.history
+                .add_event(id, old_text.as_deref(), None, MemoryAction::Delete)
+                .await?;
         }
 
         Ok(())

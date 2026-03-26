@@ -23,6 +23,7 @@ export interface Mem7Engine {
     filters?: string | null,
     rerank?: boolean | null,
     threshold?: number | null,
+    taskType?: string | null,
   ): Promise<SearchResult>;
 
   get(memoryId: string): Promise<MemoryItem>;
@@ -37,6 +38,7 @@ export interface Mem7Engine {
 
   update(memoryId: string, newText: string): Promise<void>;
   delete(memoryId: string): Promise<void>;
+  history(memoryId: string): Promise<Array<Record<string, unknown>>>;
   deleteAll(
     userId?: string | null,
     agentId?: string | null,

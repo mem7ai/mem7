@@ -292,24 +292,15 @@ impl GraphStore for FlatGraph {
 
     async fn delete_all(&self, filter: &MemoryFilter) -> Result<()> {
         let mut rel_store = self.relations.write().expect("relation lock poisoned");
-        rel_store.retain(|r| {
-            if let Some(uid) = &filter.user_id {
-                if r.user_id.as_deref() == Some(uid.as_str()) {
-                    return false;
-                }
-            }
-            true
-        });
+        rel_store.retain(|r| !matches_filter(&r.user_id, &r.agent_id, &r.run_id, filter));
+
+        let referenced_entities: std::collections::HashSet<String> = rel_store
+            .iter()
+            .flat_map(|r| [r.source.clone(), r.destination.clone()])
+            .collect();
 
         let mut ent_store = self.entities.write().expect("entity lock poisoned");
-        ent_store.retain(|e| {
-            if let Some(uid) = &filter.user_id {
-                if e.user_id.as_deref() == Some(uid.as_str()) {
-                    return false;
-                }
-            }
-            true
-        });
+        ent_store.retain(|e| referenced_entities.contains(&e.name));
 
         Ok(())
     }
@@ -333,6 +324,15 @@ mod tests {
             user_id: Some(user_id.to_string()),
             agent_id: None,
             run_id: None,
+            metadata: None,
+        }
+    }
+
+    fn scoped_filter(user_id: &str, agent_id: &str, run_id: &str) -> MemoryFilter {
+        MemoryFilter {
+            user_id: Some(user_id.to_string()),
+            agent_id: Some(agent_id.to_string()),
+            run_id: Some(run_id.to_string()),
             metadata: None,
         }
     }
@@ -603,6 +603,34 @@ mod tests {
         let empty_filter = MemoryFilter::default();
         let r = graph.search("X", &empty_filter, 10).await.unwrap();
         assert_eq!(r.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn delete_all_respects_agent_and_run_scope() {
+        let graph = FlatGraph::new();
+        let scoped_a = scoped_filter("user1", "agent-a", "run-a");
+        let scoped_b = scoped_filter("user1", "agent-b", "run-b");
+
+        let entities = vec![make_entity("Shared", "Other", None)];
+        let rels_a = vec![make_relation("Shared", "likes", "Rust")];
+        let rels_b = vec![make_relation("Shared", "likes", "Python")];
+
+        graph
+            .add_relations(&rels_a, &entities, &scoped_a)
+            .await
+            .unwrap();
+        graph
+            .add_relations(&rels_b, &entities, &scoped_b)
+            .await
+            .unwrap();
+
+        graph.delete_all(&scoped_a).await.unwrap();
+
+        let remaining_a = graph.search("Shared", &scoped_a, 10).await.unwrap();
+        let remaining_b = graph.search("Shared", &scoped_b, 10).await.unwrap();
+        assert!(remaining_a.is_empty());
+        assert_eq!(remaining_b.len(), 1);
+        assert_eq!(remaining_b[0].destination, "Python");
     }
 
     #[tokio::test]

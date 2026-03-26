@@ -9,7 +9,7 @@ import os
 import pytest
 
 from mem7 import Memory
-from mem7.config import HistoryConfig, MemoryConfig
+from mem7.config import GraphConfig, HistoryConfig, MemoryConfig
 
 
 @pytest.fixture
@@ -90,3 +90,12 @@ class TestMemoryUnit:
         json_str = config.to_json()
         assert "gpt-4.1-nano" in json_str
         assert "text-embedding-3-small" in json_str
+
+    def test_graph_config_serializes(self):
+        config = MemoryConfig(
+            graph=GraphConfig(provider="flat"),
+            history=HistoryConfig(db_path=":memory:"),
+        )
+        json_str = config.to_json()
+        assert '"graph"' in json_str
+        assert '"provider":"flat"' in json_str

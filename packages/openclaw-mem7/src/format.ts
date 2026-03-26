@@ -4,12 +4,13 @@ export interface MemoryItem {
   userId?: string | null;
   agentId?: string | null;
   runId?: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: string | Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   score?: number | null;
   lastAccessedAt?: string | null;
   accessCount: number;
+  memoryType?: string | null;
 }
 
 export interface GraphRelation {

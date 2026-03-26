@@ -66,6 +66,25 @@ impl MockVectorIndex {
             data: RwLock::new(HashMap::new()),
         }
     }
+
+    fn matches_filter(payload: &serde_json::Value, filter: &MemoryFilter) -> bool {
+        if let Some(uid) = &filter.user_id
+            && payload.get("user_id").and_then(|v| v.as_str()) != Some(uid.as_str())
+        {
+            return false;
+        }
+        if let Some(aid) = &filter.agent_id
+            && payload.get("agent_id").and_then(|v| v.as_str()) != Some(aid.as_str())
+        {
+            return false;
+        }
+        if let Some(rid) = &filter.run_id
+            && payload.get("run_id").and_then(|v| v.as_str()) != Some(rid.as_str())
+        {
+            return false;
+        }
+        true
+    }
 }
 
 #[async_trait]
@@ -82,11 +101,16 @@ impl VectorIndex for MockVectorIndex {
         &self,
         _query: &[f32],
         limit: usize,
-        _filters: Option<&MemoryFilter>,
+        filters: Option<&MemoryFilter>,
     ) -> Result<Vec<VectorSearchResult>> {
         let data = self.data.read().expect("lock poisoned");
         Ok(data
             .iter()
+            .filter(|(_, (_, payload))| {
+                filters
+                    .map(|filter| Self::matches_filter(payload, filter))
+                    .unwrap_or(true)
+            })
             .take(limit)
             .map(|(id, (_, payload))| VectorSearchResult {
                 id: *id,
@@ -125,11 +149,18 @@ impl VectorIndex for MockVectorIndex {
 
     async fn list(
         &self,
-        _filters: Option<&MemoryFilter>,
+        filters: Option<&MemoryFilter>,
         limit: Option<usize>,
     ) -> Result<Vec<(Uuid, serde_json::Value)>> {
         let data = self.data.read().expect("lock poisoned");
-        let iter = data.iter().map(|(id, (_, p))| (*id, p.clone()));
+        let iter = data
+            .iter()
+            .filter(|(_, (_, payload))| {
+                filters
+                    .map(|filter| Self::matches_filter(payload, filter))
+                    .unwrap_or(true)
+            })
+            .map(|(id, (_, p))| (*id, p.clone()));
         match limit {
             Some(n) => Ok(iter.take(n).collect()),
             None => Ok(iter.collect()),
@@ -397,4 +428,45 @@ async fn history_tracks_operations() {
     assert_eq!(history[0].action, MemoryAction::Add);
     assert_eq!(history[1].action, MemoryAction::Update);
     assert_eq!(history[2].action, MemoryAction::Delete);
+}
+
+#[tokio::test]
+async fn delete_all_requires_scope() {
+    let engine = build_engine().await;
+    let err = engine.delete_all(None, None, None).await.unwrap_err();
+    assert!(err.to_string().contains("delete_all requires at least one"));
+}
+
+#[tokio::test]
+async fn delete_all_only_removes_matching_scope_and_writes_history() {
+    let engine = build_engine().await;
+    let messages = vec![ChatMessage {
+        role: "user".into(),
+        content: "scoped memory".into(),
+        images: vec![],
+    }];
+
+    let scoped = engine
+        .add(&messages, Some("u1"), Some("a1"), Some("r1"), None, false)
+        .await
+        .unwrap();
+    let retained = engine
+        .add(&messages, Some("u1"), Some("a2"), Some("r2"), None, false)
+        .await
+        .unwrap();
+
+    engine
+        .delete_all(Some("u1"), Some("a1"), Some("r1"))
+        .await
+        .unwrap();
+
+    let deleted_id = scoped.results[0].id;
+    assert!(engine.get(deleted_id).await.is_err());
+    let remaining = engine.get(retained.results[0].id).await.unwrap();
+    assert_eq!(remaining.agent_id.as_deref(), Some("a2"));
+
+    let history = engine.history(deleted_id).await.unwrap();
+    assert_eq!(history.len(), 2);
+    assert_eq!(history[0].action, MemoryAction::Add);
+    assert_eq!(history[1].action, MemoryAction::Delete);
 }

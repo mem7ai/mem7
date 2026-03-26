@@ -13,6 +13,7 @@ class LlmConfig(BaseModel):
     model: str = "gpt-4.1-nano"
     temperature: float = 0.0
     max_tokens: int = 1000
+    enable_vision: bool = False
 
 
 class EmbeddingConfig(BaseModel):
@@ -21,6 +22,7 @@ class EmbeddingConfig(BaseModel):
     api_key: str = Field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", ""))
     model: str = "text-embedding-3-small"
     dims: int = 1536
+    cache_dir: Optional[str] = None
 
 
 class VectorConfig(BaseModel):
@@ -33,6 +35,30 @@ class VectorConfig(BaseModel):
 
 class HistoryConfig(BaseModel):
     db_path: str = "mem7_history.db"
+
+
+class RerankerConfig(BaseModel):
+    provider: str = "cohere"
+    model: Optional[str] = None
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    top_k_multiplier: int = 3
+
+
+class GraphConfig(BaseModel):
+    provider: str = "flat"
+    kuzu_db_path: Optional[str] = "mem7_graph.kuzu"
+    neo4j_url: Optional[str] = None
+    neo4j_username: Optional[str] = None
+    neo4j_password: Optional[str] = None
+    neo4j_database: Optional[str] = None
+    custom_prompt: Optional[str] = None
+    llm: Optional[LlmConfig] = None
+
+
+class TelemetryConfig(BaseModel):
+    otlp_endpoint: str = "http://localhost:4317"
+    service_name: str = "mem7"
 
 
 class DecayConfig(BaseModel):
@@ -62,6 +88,9 @@ class MemoryConfig(BaseModel):
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     vector: VectorConfig = Field(default_factory=VectorConfig)
     history: HistoryConfig = Field(default_factory=HistoryConfig)
+    reranker: Optional[RerankerConfig] = None
+    graph: Optional[GraphConfig] = None
+    telemetry: Optional[TelemetryConfig] = None
     decay: Optional[DecayConfig] = None
     context: Optional[ContextConfig] = None
     custom_fact_extraction_prompt: Optional[str] = None

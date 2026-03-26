@@ -3,7 +3,7 @@
 export declare class MemoryEngine {
   static create(configJson?: string | undefined | null): Promise<MemoryEngine>
   add(messages: Array<JsChatMessage>, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, metadata?: string | undefined | null, infer?: boolean | undefined | null): Promise<JsAddResult>
-  search(query: string, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, limit?: number | undefined | null, filters?: string | undefined | null, rerank?: boolean | undefined | null, threshold?: number | undefined | null): Promise<JsSearchResult>
+  search(query: string, userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, limit?: number | undefined | null, filters?: string | undefined | null, rerank?: boolean | undefined | null, threshold?: number | undefined | null, taskType?: string | undefined | null): Promise<JsSearchResult>
   get(memoryId: string): Promise<JsMemoryItem>
   getAll(userId?: string | undefined | null, agentId?: string | undefined | null, runId?: string | undefined | null, filters?: string | undefined | null, limit?: number | undefined | null): Promise<Array<JsMemoryItem>>
   update(memoryId: string, newText: string): Promise<void>
@@ -68,6 +68,7 @@ export interface JsMemoryItem {
   score?: number
   lastAccessedAt?: string
   accessCount: number
+  memoryType?: string
 }
 
 export interface JsSearchResult {

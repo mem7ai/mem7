@@ -192,6 +192,7 @@ impl GraphStore for KuzuGraphStore {
         let query = query.to_string();
         let user_id = filter.user_id.clone();
         let agent_id = filter.agent_id.clone();
+        let run_id = filter.run_id.clone();
 
         tokio::task::spawn_blocking(move || {
             let conn = kuzu::Connection::new(&db)
@@ -213,6 +214,9 @@ impl GraphStore for KuzuGraphStore {
             }
             if let Some(aid) = &agent_id {
                 where_clauses.push(format!("r.agent_id = '{}'", escape_cypher(aid)));
+            }
+            if let Some(rid) = &run_id {
+                where_clauses.push(format!("r.run_id = '{}'", escape_cypher(rid)));
             }
 
             let where_str = where_clauses.join(" AND ");
@@ -265,6 +269,7 @@ impl GraphStore for KuzuGraphStore {
         let embedding = embedding.to_vec();
         let user_id = filter.user_id.clone();
         let agent_id = filter.agent_id.clone();
+        let run_id = filter.run_id.clone();
 
         tokio::task::spawn_blocking(move || {
             let conn = kuzu::Connection::new(&db)
@@ -277,6 +282,9 @@ impl GraphStore for KuzuGraphStore {
             }
             if let Some(aid) = &agent_id {
                 entity_where.push(format!("e.agent_id = '{}'", escape_cypher(aid)));
+            }
+            if let Some(rid) = &run_id {
+                entity_where.push(format!("e.run_id = '{}'", escape_cypher(rid)));
             }
 
             let where_str = if entity_where.is_empty() {
@@ -321,6 +329,12 @@ impl GraphStore for KuzuGraphStore {
                 let mut hop_where = vec!["r.valid = true".to_string()];
                 if let Some(uid) = &user_id {
                     hop_where.push(format!("r.user_id = '{}'", escape_cypher(uid)));
+                }
+                if let Some(aid) = &agent_id {
+                    hop_where.push(format!("r.agent_id = '{}'", escape_cypher(aid)));
+                }
+                if let Some(rid) = &run_id {
+                    hop_where.push(format!("r.run_id = '{}'", escape_cypher(rid)));
                 }
                 let hop_filter = hop_where.join(" AND ");
 
@@ -404,6 +418,8 @@ impl GraphStore for KuzuGraphStore {
         let db = self.db.clone();
         let triples: Vec<(String, String, String)> = triples.to_vec();
         let user_id = filter.user_id.clone();
+        let agent_id = filter.agent_id.clone();
+        let run_id = filter.run_id.clone();
 
         tokio::task::spawn_blocking(move || {
             let conn = kuzu::Connection::new(&db)
@@ -413,6 +429,12 @@ impl GraphStore for KuzuGraphStore {
                 let mut where_clauses = vec![format!("r.relationship = '{}'", escape_cypher(rel))];
                 if let Some(uid) = &user_id {
                     where_clauses.push(format!("r.user_id = '{}'", escape_cypher(uid)));
+                }
+                if let Some(aid) = &agent_id {
+                    where_clauses.push(format!("r.agent_id = '{}'", escape_cypher(aid)));
+                }
+                if let Some(rid) = &run_id {
+                    where_clauses.push(format!("r.run_id = '{}'", escape_cypher(rid)));
                 }
                 let where_str = where_clauses.join(" AND ");
 
@@ -443,6 +465,8 @@ impl GraphStore for KuzuGraphStore {
         let db = self.db.clone();
         let triples: Vec<(String, String, String)> = triples.to_vec();
         let user_id = filter.user_id.clone();
+        let agent_id = filter.agent_id.clone();
+        let run_id = filter.run_id.clone();
         let now = now.to_string();
 
         tokio::task::spawn_blocking(move || {
@@ -456,6 +480,12 @@ impl GraphStore for KuzuGraphStore {
                 ];
                 if let Some(uid) = &user_id {
                     where_clauses.push(format!("r.user_id = '{}'", escape_cypher(uid)));
+                }
+                if let Some(aid) = &agent_id {
+                    where_clauses.push(format!("r.agent_id = '{}'", escape_cypher(aid)));
+                }
+                if let Some(rid) = &run_id {
+                    where_clauses.push(format!("r.run_id = '{}'", escape_cypher(rid)));
                 }
                 let where_str = where_clauses.join(" AND ");
 
@@ -482,27 +512,36 @@ impl GraphStore for KuzuGraphStore {
     async fn delete_all(&self, filter: &MemoryFilter) -> Result<()> {
         let db = self.db.clone();
         let user_id = filter.user_id.clone();
+        let agent_id = filter.agent_id.clone();
+        let run_id = filter.run_id.clone();
 
         tokio::task::spawn_blocking(move || {
             let conn = kuzu::Connection::new(&db)
                 .map_err(|e| Mem7Error::Graph(format!("connection error: {e}")))?;
 
+            let mut where_clauses = Vec::new();
             if let Some(uid) = &user_id {
-                let cypher = format!(
-                    "MATCH (s:Entity)-[r:RELATES]->(d:Entity) \
-                     WHERE r.user_id = '{}' DELETE r",
-                    escape_cypher(uid)
-                );
-                conn.query(&cypher)
-                    .map_err(|e| Mem7Error::Graph(format!("delete relations error: {e}")))?;
-
-                let cypher = format!(
-                    "MATCH (e:Entity) WHERE e.user_id = '{}' DELETE e",
-                    escape_cypher(uid)
-                );
-                conn.query(&cypher)
-                    .map_err(|e| Mem7Error::Graph(format!("delete entities error: {e}")))?;
+                where_clauses.push(format!("r.user_id = '{}'", escape_cypher(uid)));
             }
+            if let Some(aid) = &agent_id {
+                where_clauses.push(format!("r.agent_id = '{}'", escape_cypher(aid)));
+            }
+            if let Some(rid) = &run_id {
+                where_clauses.push(format!("r.run_id = '{}'", escape_cypher(rid)));
+            }
+
+            let where_str = if where_clauses.is_empty() {
+                String::new()
+            } else {
+                format!(" WHERE {}", where_clauses.join(" AND "))
+            };
+
+            let cypher = format!("MATCH (s:Entity)-[r:RELATES]->(d:Entity){where_str} DELETE r");
+            conn.query(&cypher)
+                .map_err(|e| Mem7Error::Graph(format!("delete relations error: {e}")))?;
+
+            conn.query("MATCH (e:Entity) WHERE NOT (e)--() DELETE e")
+                .map_err(|e| Mem7Error::Graph(format!("delete orphan entities error: {e}")))?;
 
             Ok(())
         })

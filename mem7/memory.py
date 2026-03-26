@@ -9,6 +9,15 @@ from mem7._mem7 import PyAsyncMemoryEngine, PyMemoryEngine
 from mem7.config import MemoryConfig
 
 
+def _parse_json_value(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        return _json.loads(value)
+    except _json.JSONDecodeError:
+        return value
+
+
 def _memory_item_to_dict(item) -> dict:
     d = {
         "id": item.id,
@@ -16,10 +25,12 @@ def _memory_item_to_dict(item) -> dict:
         "user_id": item.user_id,
         "agent_id": item.agent_id,
         "run_id": item.run_id,
-        "metadata": item.metadata,
+        "metadata": _parse_json_value(item.metadata),
         "created_at": item.created_at,
         "updated_at": item.updated_at,
         "score": item.score,
+        "last_accessed_at": item.last_accessed_at,
+        "access_count": item.access_count,
     }
     if item.memory_type is not None:
         d["memory_type"] = item.memory_type
@@ -36,11 +47,14 @@ def _action_result_to_dict(r) -> dict:
 
 
 def _relation_to_dict(r) -> dict:
-    return {
+    relation = {
         "source": r.source,
         "relationship": r.relationship,
         "destination": r.destination,
     }
+    if r.score is not None:
+        relation["score"] = r.score
+    return relation
 
 
 def _add_result_to_dict(result) -> dict:
@@ -108,12 +122,13 @@ class Memory:
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
         rerank: bool = True,
+        threshold: Optional[float] = None,
         task_type: Optional[str] = None,
     ) -> dict:
         filters_json = _json.dumps(filters) if filters is not None else None
         result = self._engine.search(
             query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-            filters=filters_json, rerank=rerank, task_type=task_type,
+            filters=filters_json, rerank=rerank, threshold=threshold, task_type=task_type,
         )
         return _search_result_to_dict(result)
 
@@ -127,10 +142,11 @@ class Memory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
     ) -> list:
         filters_json = _json.dumps(filters) if filters is not None else None
         items = self._engine.get_all(
-            user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json
+            user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json, limit=limit
         )
         return [_memory_item_to_dict(item) for item in items]
 
@@ -213,13 +229,14 @@ class AsyncMemory:
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
         rerank: bool = True,
+        threshold: Optional[float] = None,
         task_type: Optional[str] = None,
     ) -> dict:
         engine = self._check_engine()
         filters_json = _json.dumps(filters) if filters is not None else None
         result = await engine.search(
             query, user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit,
-            filters=filters_json, rerank=rerank, task_type=task_type,
+            filters=filters_json, rerank=rerank, threshold=threshold, task_type=task_type,
         )
         return _search_result_to_dict(result)
 
@@ -235,11 +252,12 @@ class AsyncMemory:
         agent_id: Optional[str] = None,
         run_id: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
     ) -> list:
         engine = self._check_engine()
         filters_json = _json.dumps(filters) if filters is not None else None
         items = await engine.get_all(
-            user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json
+            user_id=user_id, agent_id=agent_id, run_id=run_id, filters=filters_json, limit=limit
         )
         return [_memory_item_to_dict(item) for item in items]
 
