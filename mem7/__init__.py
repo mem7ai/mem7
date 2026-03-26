@@ -9,7 +9,7 @@ __all__ = ["Memory", "AsyncMemory", "init_telemetry", "shutdown_telemetry"]
 try:
     __version__ = importlib.metadata.version("mem7")
 except importlib.metadata.PackageNotFoundError:
-    __version__ = "0.3.2"
+    __version__ = "0.3.3"
 
 
 def init_telemetry(**kwargs):

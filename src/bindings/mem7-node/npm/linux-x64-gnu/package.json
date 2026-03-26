@@ -1,6 +1,6 @@
 {
   "name": "@mem7ai/mem7-linux-x64-gnu",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "os": ["linux"],
   "cpu": ["x64"],
   "main": "mem7.linux-x64-gnu.node",

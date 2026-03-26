@@ -277,7 +277,7 @@ Requires the `fastembed` feature flag:
 
 ```toml
 # Cargo.toml
-mem7 = { version = "0.2", features = ["fastembed"] }
+mem7 = { version = "0.3.3", features = ["fastembed"] }
 ```
 
 ```python
@@ -579,7 +579,7 @@ shutdownTelemetry();
 **Rust** (requires `otel` feature):
 
 ```rust
-// Cargo.toml: mem7 = { version = "0.2", features = ["otel"] }
+// Cargo.toml: mem7 = { version = "0.3.3", features = ["otel"] }
 use mem7::{TelemetryConfig, telemetry};
 
 telemetry::init(&TelemetryConfig::default())?;
